@@ -54,11 +54,17 @@ DJANGO_APPS = [
 ]
 
 PROJECT_APPS = [
-
+    'accounts',
+    'profiles',
+    'proposals',
 ]
 
 THIRD_PARTY_APPS = [
-
+    "corsheaders",
+    "rest_framework",
+    'rest_framework_simplejwt',
+    'storages',
+    'drf_yasg',
 ]
 
 
