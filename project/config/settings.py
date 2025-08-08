@@ -23,7 +23,6 @@ with open(secret_file) as f:
     secrets = json.loads(f.read())
 
 def get_secret(setting, secrets=secrets): 
-# secret 변수를 가져오거나 그렇지 못 하면 예외를 반환
     try:
         return secrets[setting]
     except KeyError:
