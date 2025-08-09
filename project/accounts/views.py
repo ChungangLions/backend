@@ -101,14 +101,15 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         tags=["Likes"],
         operation_id="unlikeUser",
     )
-    @action(detail=True, methods=['post', 'delete'], url_path='like')
+    # tests.py를 이용한 디버그, 액션 단위의 인증 요청
+    @action(detail=True, methods=['post', 'delete'], url_path='like', permission_classes=[])
     def like(self, request, pk=None):
         if not request.user.is_authenticated:
             return Response({'detail': '인증 필요'}, status=status.HTTP_401_UNAUTHORIZED)
 
         target = self.get_object()
         if request.method.lower() == 'post':
-            ser = LikeWriteSerializer(data={'target': target.id}, context={'request': request})
+            ser = LikeWriteSerializer(data={'user': request.user.id, 'target': target.id}, context={'request': request})
             ser.is_valid(raise_exception=True)
             like = ser.save()
             return Response({'status': 'liked', 'like_id': like.id}, status=status.HTTP_201_CREATED)
@@ -141,7 +142,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         tags=["Likes"],
         operation_id="toggleLikeUser",
     )
-    @action(detail=True, methods=['post'], url_path='like-toggle')
+    @action(detail=True, methods=['post'], url_path='like-toggle', permission_classes=[])
     def like_toggle(self, request, pk=None):
         if not request.user.is_authenticated:
             return Response({'detail': '인증 필요'}, status=status.HTTP_401_UNAUTHORIZED)

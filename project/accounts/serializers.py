@@ -74,6 +74,7 @@ class LikeWriteSerializer(serializers.ModelSerializer):
                 attrs["user"] = request.user
             else:
                 raise serializers.ValidationError(_("인증이 필요합니다!"))
+        
         user = attrs["user"]
         target = attrs["target"]
 
@@ -101,7 +102,7 @@ class LikeToggleSerializer(serializers.Serializer):
     target = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     def save(self, **kwargs):
-        # create 전용 간이 버전
+        # 토글 기능: 있으면 삭제하고 None 반환, 없으면 생성해서 반환
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             raise serializers.ValidationError(_("인증이 필요합니다."))
@@ -109,8 +110,13 @@ class LikeToggleSerializer(serializers.Serializer):
         target = self.validated_data["target"]
         if user == target:
             raise serializers.ValidationError(_("자기 자신을 찜할 수 없습니다."))
-        obj, created = Like.objects.get_or_create(user=user, target=target)
-        if not created:
-            # 이미 있으면 그대로 반환 (id 포함)
-            return obj
-        return obj
+        
+        # 기존 찜이 있는지 확인
+        try:
+            existing_like = Like.objects.get(user=user, target=target)
+            # 있으면 삭제하고 None 반환
+            existing_like.delete()
+            return None
+        except Like.DoesNotExist:
+            # 없으면 생성해서 반환
+            return Like.objects.create(user=user, target=target)
