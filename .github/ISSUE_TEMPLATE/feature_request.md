@@ -1,7 +1,7 @@
 ---
 name: Feature request
-about: Feature 작업 상황을 알려주세
-title: "[Feature] - "
+about: 개발할 내용
+title: "[FEATURE] - "
 labels: feature
 assignees: ''
 
