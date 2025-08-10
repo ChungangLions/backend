@@ -30,17 +30,14 @@ class PartnershipRecord(models.TextChoices):
 class OwnerProfile(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owner_profile')
-    '''
+    
     # 주변 캠퍼스 
     campus_name = models.CharField(
         max_length = 100, blank=True, null=True,
+        verbose_name="대학교명",
         help_text="검색으로 선택한 캠퍼스명"
     )
-    campus_address = models.CharField(
-        max_length = 300, blank = True, null=True,
-        help_text = "선택 캠퍼스의 주소"
-    )
-    '''
+
 
     # 업종
     business_type = models.CharField(
@@ -116,11 +113,20 @@ class OwnerProfile(models.Model):
         help_text='추가 제공 가능 서비스가 기타(OTHER)일 때 상세'
     )
 
+    # 한줄소개
+    comment = models.CharField(max_length=100)
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일')
     modified_at = models.DateTimeField(auto_now=True, verbose_name='수정일')
 
     def __str__(self):
         return self.profile_name
+    
+    # 제휴 유형
+    partnership_type = models.JSONField(
+        default=list, blank=True,
+        help_text='할인형, 리뷰형, 서비스제공형, 타임형 중 하나 이상' # 예 : ["할인형", "리뷰형"]   
+    )
     
 # 대표 사진 : 여러개 저장을 위해 별도 테이블 생성
 class OwnerPhoto(models.Model):
@@ -160,20 +166,50 @@ class Menu(models.Model):
 
     def __str__(self):
         return f"{self.owner_profile.profile_name} - {self.name}"
+
+class PartnershipTpye(models.Model):
+    profile_id = models.ForeignKey(
+    OwnerProfile, on_delete=models.CASCADE, related_name="partnership_type"
+    )
+    name = models.CharField(max_length=50)
+    price = models.PositiveIntegerField(validators=[MinValueValidator(0)])
+    image = models.ImageField(
+        upload_to="owner_profile/menus/",
+        blank=True, null=True,
+    )
+    order = models.PositiveSmallIntegerField(
+        default=0, help_text="표시 순서"
+    )
+
+    class Meta:
+        ordering = ["order", "id"] # 쿼리셋 정렬 순서 order -> id
+        unique_together = [("owner_profile", "name")]  # 같은 상호 내 중복 메뉴명 방지
+
+    def __str__(self):
+        return f"{self.owner_profile.profile_name} - {self.name}"
+     
+     
     
 # ------ 학생단체 프로필 ------
 class StudentGroupProfile(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_group_profile')
 
-    # 소속 
-    '''
-    어떤식으로 할지 논의 필요
-    profile_name = models.CharField(
-        max_length = 100, blank=True, null=True,
-        help_text="검색으로 선택한 단체명"
+    # 학교
+    university_name = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        verbose_name="소속대학교명",
+        help_text="검색으로 선택한 대학교명 (예: 서울대학교)"
     )
-    '''
+
+    # 소속 
+    council_name = models.CharField(
+        max_length = 100, blank=True, null=True,
+        help_text="소속된 학생회"
+    )
+    
     # 직책
     position = models.CharField(max_length=30)
 
