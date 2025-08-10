@@ -3,143 +3,143 @@ from accounts.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class PartnershipGoal(models.TextChoices):
-        NEW_CUSTOMERS = "NEW_CUSTOMERS", "½Å±Ô °í°´ À¯ÀÔ"
-        REVISIT = "REVISIT", "Àç¹æ¹® Áõ°¡"
-        CLEAR_STOCK = "CLEAR_STOCK", "Àç°í ¼ÒÁø"
-        SPREAD_PEAK = "SPREAD_PEAK", "ÇÇÅ©Å¸ÀÓ ºÐ»ê"
-        SNS_MARKETING = "SNS_MARKETING", "SNS È«º¸"
-        COLLECT_REVIEWS = "COLLECT_REVIEWS", "¸®ºä È®º¸"
-        OTHER = "OTHER", "±âÅ¸"
+        NEW_CUSTOMERS = "NEW_CUSTOMERS", "ì‹ ê·œ ê³ ê° ìœ ìž…"
+        REVISIT = "REVISIT", "ìž¬ë°©ë¬¸ ì¦ê°€"
+        CLEAR_STOCK = "CLEAR_STOCK", "ìž¬ê³  ì†Œì§„"
+        SPREAD_PEAK = "SPREAD_PEAK", "í”¼í¬íƒ€ìž„ ë¶„ì‚°"
+        SNS_MARKETING = "SNS_MARKETING", "SNS í™ë³´"
+        COLLECT_REVIEWS = "COLLECT_REVIEWS", "ë¦¬ë·° í™•ë³´"
+        OTHER = "OTHER", "ê¸°íƒ€"
 
 class BusinessType(models.TextChoices):
-        RESTAURANT = 'RESTAURANT', '½Ä´ç'
-        CAFE = 'CAFE', 'Ä«Æä'
-        BAR = 'BAR', 'ÁÖÁ¡'
+        RESTAURANT = 'RESTAURANT', 'ì‹ë‹¹'
+        CAFE = 'CAFE', 'ì¹´íŽ˜'
+        BAR = 'BAR', 'ì£¼ì '
 
 class Service(models.TextChoices):
-        SIDE_MENU = 'SIDE_MENU', '»çÀÌµå ¸Þ´º'
-        DRINK = 'DRINK', 'À½·á¼ö'
-        OTHER = 'OTHERS', '±âÅ¸'
+        SIDE_MENU = 'SIDE_MENU', 'ì‚¬ì´ë“œ ë©”ë‰´'
+        DRINK = 'DRINK', 'ìŒë£Œìˆ˜'
+        OTHER = 'OTHERS', 'ê¸°íƒ€'
 
 class PartnershipRecord(models.TextChoices):
-        TRUE = 'TRUE', 'ÀÖÀ½'
-        FALSE = 'FALSE', '¾øÀ½'
+        TRUE = 'TRUE', 'ìžˆìŒ'
+        FALSE = 'FALSE', 'ì—†ìŒ'
 
 
-# ------ »çÀå´Ô ÇÁ·ÎÇÊ ------
+# ------ ì‚¬ìž¥ë‹˜ í”„ë¡œí•„ ------
 class OwnerProfile(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owner_profile')
     '''
-    # ÁÖº¯ Ä·ÆÛ½º 
+    # ì£¼ë³€ ìº í¼ìŠ¤ 
     campus_name = models.CharField(
         max_length = 100, blank=True, null=True,
-        help_text="°Ë»öÀ¸·Î ¼±ÅÃÇÑ Ä·ÆÛ½º¸í"
+        help_text="ê²€ìƒ‰ìœ¼ë¡œ ì„ íƒí•œ ìº í¼ìŠ¤ëª…"
     )
     campus_address = models.CharField(
         max_length = 300, blank = True, null=True,
-        help_text = "¼±ÅÃ Ä·ÆÛ½ºÀÇ ÁÖ¼Ò"
+        help_text = "ì„ íƒ ìº í¼ìŠ¤ì˜ ì£¼ì†Œ"
     )
     '''
 
-    # ¾÷Á¾
+    # ì—…ì¢…
     business_type = models.CharField(
         max_length=20,
         choices=BusinessType.choices,
         blank=False,            
         db_index=True,                   
-        verbose_name='¾÷Á¾',
-        help_text='½Ä´ç, Ä«Æä, ÁÖÁ¡ Áß ÇÏ³ª'
+        verbose_name='ì—…ì¢…',
+        help_text='ì‹ë‹¹, ì¹´íŽ˜, ì£¼ì  ì¤‘ í•˜ë‚˜'
     )
 
-    # °¡°Ô¸í
+    # ê°€ê²Œëª…
     profile_name = models.CharField(max_length=30)
 
-    # ¿µ¾÷ÀÏ
+    # ì˜ì—…ì¼
     business_day = models.JSONField(
         default=dict, blank = False,
-        help_text = '¿äÀÏº° ½Ã°£´ë ¹è¿­ JSON' # ¿¹: {"¿ù": ["09:00-15:00"], "¼ö": ["18:00-24:00"]}
+        help_text = 'ìš”ì¼ë³„ ì‹œê°„ëŒ€ ë°°ì—´ JSON' # ì˜ˆ: {"ì›”": ["09:00-15:00"], "ìˆ˜": ["18:00-24:00"]}
     )
 
-    # Á¦ÈÞ ¸ñÇ¥
+    # ì œíœ´ ëª©í‘œ
     partnership_goal = models.CharField(
         max_length=20,
         choices=PartnershipGoal.choices,
         blank=False,            
         db_index=True,                   
-        verbose_name='Á¦ÈÞ ¸ñÇ¥',
-        help_text='½Å±Ô °í°´ À¯ÀÔ, Àç¹æ¹® Áõ°¡, Àç°í ¼ÒÁø, ÇÇÅ©Å¸ÀÓ ºÐ»ê, SNS È«º¸, ¸®ºä È®º¸, ±âÅ¸ Áß ÇÏ³ª'
+        verbose_name='ì œíœ´ ëª©í‘œ',
+        help_text='ì‹ ê·œ ê³ ê° ìœ ìž…, ìž¬ë°©ë¬¸ ì¦ê°€, ìž¬ê³  ì†Œì§„, í”¼í¬íƒ€ìž„ ë¶„ì‚°, SNS í™ë³´, ë¦¬ë·° í™•ë³´, ê¸°íƒ€ ì¤‘ í•˜ë‚˜'
     )
     partnership_goal_other = models.CharField(
         max_length=200, blank=True,
-        verbose_name="±âÅ¸ »ó¼¼",
-        help_text='Á¦ÈÞ ¸ñÇ¥°¡ ±âÅ¸(OTHER)ÀÏ ¶§ »ó¼¼'
+        verbose_name="ê¸°íƒ€ ìƒì„¸",
+        help_text='ì œíœ´ ëª©í‘œê°€ ê¸°íƒ€(OTHER)ì¼ ë•Œ ìƒì„¸'
     )
 
-    # Æò±Õ ÀÎ´ç ¸ÅÃâ
+    # í‰ê·  ì¸ë‹¹ ë§¤ì¶œ
     average_sales = models.PositiveIntegerField(
         validators=[MinValueValidator(0)],
-        help_text='¿ø ´ÜÀ§'
+        help_text='ì› ë‹¨ìœ„'
     )
 
-    # ¸¶ÁøÀ²
+    # ë§ˆì§„ìœ¨
     margin_rate = models.DecimalField(
         max_digits=5, decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text='0~100 »çÀÌ ÆÛ¼¾Æ®'
+        help_text='0~100 ì‚¬ì´ í¼ì„¼íŠ¸'
     )
 
-    # ¹Ù»Û ½Ã°£´ë
+    # ë°”ìœ ì‹œê°„ëŒ€
     peak_time = models.JSONField(
         default=list, blank=True,
-        help_text='¹®ÀÚ¿­ ±¸°£ ¹è¿­' # ¿¹ : ["11:00-14:00", "18:00-21:00"]
+        help_text='ë¬¸ìžì—´ êµ¬ê°„ ë°°ì—´' # ì˜ˆ : ["11:00-14:00", "18:00-21:00"]
     )
 
-    # ÇÑ»ê ½Ã°£´ë
+    # í•œì‚° ì‹œê°„ëŒ€
     off_peak_time = models.JSONField(
         default=list, blank=True,
-        help_text='¹®ÀÚ¿­ ±¸°£ ¹è¿­' # ¿¹ : ["11:00-14:00", "18:00-21:00"]
+        help_text='ë¬¸ìžì—´ êµ¬ê°„ ë°°ì—´' # ì˜ˆ : ["11:00-14:00", "18:00-21:00"]
     )
 
-    # Ãß°¡ Á¦°ø °¡´É ¼­ºñ½º
+    # ì¶”ê°€ ì œê³µ ê°€ëŠ¥ ì„œë¹„ìŠ¤
     available_service = models.CharField(
         max_length=20,
         choices=Service.choices,
         blank=False,             
         db_index=True,                   
-        verbose_name='Ãß°¡ Á¦°ø °¡´É ¼­ºñ½º',
-        help_text='À½·á¼ö, »çÀÌµå ¸Þ´º, ±âÅ¸ Áß ÇÏ³ª'
+        verbose_name='ì¶”ê°€ ì œê³µ ê°€ëŠ¥ ì„œë¹„ìŠ¤',
+        help_text='ìŒë£Œìˆ˜, ì‚¬ì´ë“œ ë©”ë‰´, ê¸°íƒ€ ì¤‘ í•˜ë‚˜'
     )
     available_service_other = models.CharField(
         max_length=200, blank=True,
-        verbose_name="±âÅ¸ »ó¼¼",
-        help_text='Ãß°¡ Á¦°ø °¡´É ¼­ºñ½º°¡ ±âÅ¸(OTHER)ÀÏ ¶§ »ó¼¼'
+        verbose_name="ê¸°íƒ€ ìƒì„¸",
+        help_text='ì¶”ê°€ ì œê³µ ê°€ëŠ¥ ì„œë¹„ìŠ¤ê°€ ê¸°íƒ€(OTHER)ì¼ ë•Œ ìƒì„¸'
     )
 
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='»ý¼ºÀÏ')
-    modified_at = models.DateTimeField(auto_now=True, verbose_name='¼öÁ¤ÀÏ')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='ìƒì„±ì¼')
+    modified_at = models.DateTimeField(auto_now=True, verbose_name='ìˆ˜ì •ì¼')
 
     def __str__(self):
         return self.profile_name
     
-# ´ëÇ¥ »çÁø : ¿©·¯°³ ÀúÀåÀ» À§ÇØ º°µµ Å×ÀÌºí »ý¼º
+# ëŒ€í‘œ ì‚¬ì§„ : ì—¬ëŸ¬ê°œ ì €ìž¥ì„ ìœ„í•´ ë³„ë„ í…Œì´ë¸” ìƒì„±
 class OwnerPhoto(models.Model):
     owner_profile = models.ForeignKey(
         OwnerProfile, on_delete=models.CASCADE, related_name="photos"
     )
     image = models.ImageField(upload_to="owner_profile/photos/")
     order = models.PositiveSmallIntegerField(
-        default=0, help_text="Ç¥½Ã ¼ø¼­"
+        default=0, help_text="í‘œì‹œ ìˆœì„œ"
     )
-    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='»ý¼ºÀÏ')
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='ìƒì„±ì¼')
 
     class Meta:
-        ordering = ["order", "id"] # Äõ¸®¼Â Á¤·Ä ¼ø¼­ order -> id
+        ordering = ["order", "id"] # ì¿¼ë¦¬ì…‹ ì •ë ¬ ìˆœì„œ order -> id
     
     def __str__(self):
         return f"{self.owner_profile.profile_name} - photo#{self.pk}"
 
-# ´ëÇ¥ ¸Þ´º : ¿©·¯°³ ÀúÀåÀ» À§ÇØ º°µµ Å×ÀÌºí »ý¼º
+# ëŒ€í‘œ ë©”ë‰´ : ì—¬ëŸ¬ê°œ ì €ìž¥ì„ ìœ„í•´ ë³„ë„ í…Œì´ë¸” ìƒì„±
 class Menu(models.Model):
     owner_profile = models.ForeignKey(
         OwnerProfile, on_delete=models.CASCADE, related_name="menus"
@@ -151,72 +151,72 @@ class Menu(models.Model):
         blank=True, null=True,
     )
     order = models.PositiveSmallIntegerField(
-        default=0, help_text="Ç¥½Ã ¼ø¼­"
+        default=0, help_text="í‘œì‹œ ìˆœì„œ"
     )
 
     class Meta:
-        ordering = ["order", "id"] # Äõ¸®¼Â Á¤·Ä ¼ø¼­ order -> id
-        unique_together = [("owner_profile", "name")]  # °°Àº »óÈ£ ³» Áßº¹ ¸Þ´º¸í ¹æÁö
+        ordering = ["order", "id"] # ì¿¼ë¦¬ì…‹ ì •ë ¬ ìˆœì„œ order -> id
+        unique_together = [("owner_profile", "name")]  # ê°™ì€ ìƒí˜¸ ë‚´ ì¤‘ë³µ ë©”ë‰´ëª… ë°©ì§€
 
     def __str__(self):
         return f"{self.owner_profile.profile_name} - {self.name}"
     
-# ------ ÇÐ»ý´ÜÃ¼ ÇÁ·ÎÇÊ ------
+# ------ í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ------
 class StudentGroupProfile(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_group_profile')
 
-    # ¼Ò¼Ó 
+    # ì†Œì† 
     '''
-    ¾î¶²½ÄÀ¸·Î ÇÒÁö ³íÀÇ ÇÊ¿ä
+    ì–´ë–¤ì‹ìœ¼ë¡œ í• ì§€ ë…¼ì˜ í•„ìš”
     profile_name = models.CharField(
         max_length = 100, blank=True, null=True,
-        help_text="°Ë»öÀ¸·Î ¼±ÅÃÇÑ ´ÜÃ¼¸í"
+        help_text="ê²€ìƒ‰ìœ¼ë¡œ ì„ íƒí•œ ë‹¨ì²´ëª…"
     )
     '''
-    # Á÷Ã¥
+    # ì§ì±…
     position = models.CharField(max_length=30)
 
-    # ¼Ò¼Ó ´ÜÀ§ ÇÐ»ý ¼ö
+    # ì†Œì† ë‹¨ìœ„ í•™ìƒ ìˆ˜
     student_size = models.PositiveIntegerField(
         validators=[MinValueValidator(0)],
-        help_text='¸í ´ÜÀ§'
+        help_text='ëª… ë‹¨ìœ„'
     )
 
-    # ÀÓ±â
-    term_start = models.DateField(verbose_name="ÀÓ±â ½ÃÀÛÀÏ")
-    term_end = models.DateField(verbose_name="ÀÓ±â Á¾·áÀÏ")
+    # ìž„ê¸°
+    term_start = models.DateField(verbose_name="ìž„ê¸° ì‹œìž‘ì¼")
+    term_end = models.DateField(verbose_name="ìž„ê¸° ì¢…ë£Œì¼")
     
-    # Á¦ÈÞ ±â°£
-    partnership_start = models.DateField(verbose_name="Á¦ÈÞ ½ÃÀÛÀÏ")
-    partnership_end = models.DateField(verbose_name="Á¦ÈÞ Á¾·áÀÏ")
+    # ì œíœ´ ê¸°ê°„
+    partnership_start = models.DateField(verbose_name="ì œíœ´ ì‹œìž‘ì¼")
+    partnership_end = models.DateField(verbose_name="ì œíœ´ ì¢…ë£Œì¼")
 
-    # Á¦ÈÞ ÀÌ·Â
+    # ì œíœ´ ì´ë ¥
     partnership_record = models.CharField(
         max_length=5,
         choices=PartnershipRecord.choices,
         blank=False,            
         db_index=True,                   
-        verbose_name='Á¦ÈÞ ÀÌ·Â',
-        help_text='ÀÖÀ½, ¾øÀ½ Áß ÇÏ³ª'
+        verbose_name='ì œíœ´ ì´ë ¥',
+        help_text='ìžˆìŒ, ì—†ìŒ ì¤‘ í•˜ë‚˜'
     )
-    record_name = models.CharField(max_length=100, blank=True, verbose_name="Á¦ÈÞ ¾÷Ã¼¸í")
-    record_start = models.DateField(verbose_name="Á¦ÈÞ ½ÃÀÛÀÏ")
-    record_end = models.DateField(verbose_name="Á¦ÈÞ Á¾·áÀÏ")
+    record_name = models.CharField(max_length=100, blank=True, verbose_name="ì œíœ´ ì—…ì²´ëª…")
+    record_start = models.DateField(verbose_name="ì œíœ´ ì‹œìž‘ì¼")
+    record_end = models.DateField(verbose_name="ì œíœ´ ì¢…ë£Œì¼")
 
-# ÇÐ»ý ´ÜÃ¼ ´ëÇ¥ »çÁø : ¿©·¯°³ ÀúÀåÀ» À§ÇØ º°µµ Å×ÀÌºí »ý¼º
+# í•™ìƒ ë‹¨ì²´ ëŒ€í‘œ ì‚¬ì§„ : ì—¬ëŸ¬ê°œ ì €ìž¥ì„ ìœ„í•´ ë³„ë„ í…Œì´ë¸” ìƒì„±
 class StudentPhoto(models.Model):
     owner_profile = models.ForeignKey(
         StudentGroupProfile, on_delete=models.CASCADE, related_name="photos"
     )
     image = models.ImageField(upload_to="student_group_profile/photos/")
     order = models.PositiveSmallIntegerField(
-        default=0, help_text="Ç¥½Ã ¼ø¼­"
+        default=0, help_text="í‘œì‹œ ìˆœì„œ"
     )
-    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='»ý¼ºÀÏ')
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='ìƒì„±ì¼')
 
     class Meta:
-        ordering = ["order", "id"] # Äõ¸®¼Â Á¤·Ä ¼ø¼­ order -> id
+        ordering = ["order", "id"] # ì¿¼ë¦¬ì…‹ ì •ë ¬ ìˆœì„œ order -> id
     
     def __str__(self):
         return f"{self.owner_profile.profile_name} - photo#{self.pk}"

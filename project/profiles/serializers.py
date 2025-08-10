@@ -5,7 +5,7 @@ from .models import (
     PartnershipGoal, Service, PartnershipRecord
 )
 
-# ------ ¾÷Ã¼ ÇÁ·ÎÇÊ °ü·Ã Serializers ------
+# ------ ì—…ì²´ í”„ë¡œí•„ ê´€ë ¨ Serializers ------
 
 class OwnerPhotoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,7 +25,7 @@ class StudentPhotoSerializer(serializers.ModelSerializer):
         fields = ["id", "image", "order", "uploaded_at"]
         read_only_fields = ["id", "uploaded_at"]
 
-# --- ¾÷Ã¼ ÇÁ·ÎÇÊ Á¶È¸¿ë --- 
+# --- ì—…ì²´ í”„ë¡œí•„ ì¡°íšŒìš© --- 
 class OwnerProfileSerializer(serializers.ModelSerializer):
 
     photos = OwnerPhotoSerializer(many=True, required=False)
@@ -45,7 +45,7 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'modified_at']
     
-# --- ¾÷Ã¼ ÇÁ·ÎÇÊ »ı¼º/¼öÁ¤¿ë ---
+# --- ì—…ì²´ í”„ë¡œí•„ ìƒì„±/ìˆ˜ì •ìš© ---
 class OwnerProfileCreateSerializer(serializers.ModelSerializer):
     
     photos_data = OwnerPhotoSerializer(many=True, required=False)
@@ -64,19 +64,19 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
         
     def validate_margin_rate(self, value):
         if value < 0 or value > 100:
-            raise serializers.ValidationError("¸¶ÁøÀ²Àº 0°ú 100 »çÀÌ¿©¾ß ÇÕ´Ï´Ù.")
+            raise serializers.ValidationError("ë§ˆì§„ìœ¨ì€ 0ê³¼ 100 ì‚¬ì´ì—¬ì•¼ í•©ë‹ˆë‹¤.")
         return value
     
     def validate_partnership_goal_other(self, value):
         partnership_goal = self.initial_data.get('partnership_goal')
         if partnership_goal == PartnershipGoal.OTHER and not value:
-            raise serializers.ValidationError("Á¦ÈŞ ¸ñÇ¥°¡ '±âÅ¸'ÀÏ ¶§´Â »ó¼¼ ³»¿ëÀ» ÀÔ·ÂÇØ¾ß ÇÕ´Ï´Ù.")
+            raise serializers.ValidationError("ì œíœ´ ëª©í‘œê°€ 'ê¸°íƒ€'ì¼ ë•ŒëŠ” ìƒì„¸ ë‚´ìš©ì„ ì…ë ¥í•´ì•¼ í•©ë‹ˆë‹¤.")
         return value
     
     def validate_available_service_other(self, value):
         available_service = self.initial_data.get('available_service')
         if available_service == Service.OTHER and not value:
-            raise serializers.ValidationError("Ãß°¡ ¼­ºñ½º°¡ '±âÅ¸'ÀÏ ¶§´Â »ó¼¼ ³»¿ëÀ» ÀÔ·ÂÇØ¾ß ÇÕ´Ï´Ù.")
+            raise serializers.ValidationError("ì¶”ê°€ ì„œë¹„ìŠ¤ê°€ 'ê¸°íƒ€'ì¼ ë•ŒëŠ” ìƒì„¸ ë‚´ìš©ì„ ì…ë ¥í•´ì•¼ í•©ë‹ˆë‹¤.")
         return value
     
     def create(self, validated_data):
@@ -114,7 +114,7 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
         return instance
 
 
-# ------ ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ °ü·Ã Serializers ------
+# ------ í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ê´€ë ¨ Serializers ------
 
 class StudentPhotoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -122,7 +122,7 @@ class StudentPhotoSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'order', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
 
-# --- ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ Á¶È¸¿ë ---
+# --- í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ì¡°íšŒìš© ---
 class StudentGroupProfileSerializer(serializers.ModelSerializer):
     
     photos = StudentPhotoSerializer(many=True, read_only=True)
@@ -140,7 +140,7 @@ class StudentGroupProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
-# --- ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ »ı¼º/¼öÁ¤¿ë ---
+# --- í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ìƒì„±/ìˆ˜ì •ìš© ---
 class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
     
     photos_data = StudentPhotoSerializer(many=True, required=False)
@@ -156,24 +156,24 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        # ÀÓ±â ³¯Â¥ °ËÁõ
+        # ì„ê¸° ë‚ ì§œ ê²€ì¦
         if data.get('term_start') and data.get('term_end'):
             if data['term_start'] >= data['term_end']:
-                raise serializers.ValidationError("ÀÓ±â Á¾·áÀÏÀº ½ÃÀÛÀÏº¸´Ù ´Ê¾î¾ß ÇÕ´Ï´Ù.")
+                raise serializers.ValidationError("ì„ê¸° ì¢…ë£Œì¼ì€ ì‹œì‘ì¼ë³´ë‹¤ ëŠ¦ì–´ì•¼ í•©ë‹ˆë‹¤.")
         
-        # Á¦ÈŞ ±â°£ ³¯Â¥ °ËÁõ
+        # ì œíœ´ ê¸°ê°„ ë‚ ì§œ ê²€ì¦
         if data.get('partnership_start') and data.get('partnership_end'):
             if data['partnership_start'] >= data['partnership_end']:
-                raise serializers.ValidationError("Á¦ÈŞ Á¾·áÀÏÀº ½ÃÀÛÀÏº¸´Ù ´Ê¾î¾ß ÇÕ´Ï´Ù.")
+                raise serializers.ValidationError("ì œíœ´ ì¢…ë£Œì¼ì€ ì‹œì‘ì¼ë³´ë‹¤ ëŠ¦ì–´ì•¼ í•©ë‹ˆë‹¤.")
         
-        # Á¦ÈŞ ÀÌ·ÂÀÌ ÀÖÀ» ¶§ ±â·Ï Á¤º¸ ÇÊ¼ö
+        # ì œíœ´ ì´ë ¥ì´ ìˆì„ ë•Œ ê¸°ë¡ ì •ë³´ í•„ìˆ˜
         if data.get('partnership_record') == PartnershipRecord.TRUE:
             if not data.get('record_name'):
-                raise serializers.ValidationError("Á¦ÈŞ ÀÌ·ÂÀÌ ÀÖÀ» ¶§´Â ¾÷Ã¼¸íÀ» ÀÔ·ÂÇØ¾ß ÇÕ´Ï´Ù.")
+                raise serializers.ValidationError("ì œíœ´ ì´ë ¥ì´ ìˆì„ ë•ŒëŠ” ì—…ì²´ëª…ì„ ì…ë ¥í•´ì•¼ í•©ë‹ˆë‹¤.")
             if not data.get('record_start') or not data.get('record_end'):
-                raise serializers.ValidationError("Á¦ÈŞ ÀÌ·ÂÀÌ ÀÖÀ» ¶§´Â Á¦ÈŞ ±â°£À» ÀÔ·ÂÇØ¾ß ÇÕ´Ï´Ù.")
+                raise serializers.ValidationError("ì œíœ´ ì´ë ¥ì´ ìˆì„ ë•ŒëŠ” ì œíœ´ ê¸°ê°„ì„ ì…ë ¥í•´ì•¼ í•©ë‹ˆë‹¤.")
             if data.get('record_start') >= data.get('record_end'):
-                raise serializers.ValidationError("Á¦ÈŞ ÀÌ·ÂÀÇ Á¾·áÀÏÀº ½ÃÀÛÀÏº¸´Ù ´Ê¾î¾ß ÇÕ´Ï´Ù.")
+                raise serializers.ValidationError("ì œíœ´ ì´ë ¥ì˜ ì¢…ë£Œì¼ì€ ì‹œì‘ì¼ë³´ë‹¤ ëŠ¦ì–´ì•¼ í•©ë‹ˆë‹¤.")
         
         return data
     
