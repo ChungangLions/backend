@@ -81,6 +81,9 @@ class LikeWriteSerializer(serializers.ModelSerializer):
         if user == target:
             raise serializers.ValidationError(_("자기 자신을 찜할 수 없습니다!"))
 
+        if user.user_role == target.user_role:
+            raise serializers.ValidationError(_("같은 역할의 사용자를 찜할 수 없습니다!"))
+
         return attrs
 
     def create(self, validated_data):
