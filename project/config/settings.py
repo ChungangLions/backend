@@ -153,31 +153,12 @@ STATIC_URL = 'static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-<<<<<<< HEAD
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-[
-    {
-        "AllowedHeaders": [
-            "*"
-        ],
-        "AllowedMethods": [
-            "GET",
-            "POST"
-        ],
-        "AllowedOrigins": [
-            "*"
-        ],
-        "ExposeHeaders": [
-            "ETag"
-        ],
-        "MaxAgeSeconds": 3000
-    }
-]
 
 ###AWS###
-AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID") # .csv ÆÄÀÏ¿¡ ÀÖ´Â ³»¿ëÀ» ÀÔ·Â Access key ID. IAM °èÁ¤ °ü·Ã
-AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY") # .csv ÆÄÀÏ¿¡ ÀÖ´Â ³»¿ëÀ» ÀÔ·Â Secret access key. IAM °èÁ¤ °ü·Ã
+AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID") # .csv íŒŒì¼ì— ìžˆëŠ” ë‚´ìš©ì„ ìž…ë ¥ Access key ID. IAM ê³„ì • ê´€ë ¨
+AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY") # .csv íŒŒì¼ì— ìžˆëŠ” ë‚´ìš©ì„ ìž…ë ¥ Secret access key. IAM ê³„ì • ê´€ë ¨
 AWS_REGION = 'ap-northeast-2'
 
 ###S3###
@@ -186,6 +167,5 @@ AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME,AWS_R
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
-=======
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
->>>>>>> 70cdfb7c429cf82220eb42e422405a97eec40424
+
+
