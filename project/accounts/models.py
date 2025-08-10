@@ -4,7 +4,7 @@ from django.db.models import Q, F
 from django.utils import timezone
 
 # 사용자 정의 유저 모델
-# - 역할: 사장님/학생단체를 구분
+# - 역할: 사장님/학생단체를 구분 + (2025-08-10 추가): 학생 role도 추가
 class User(AbstractUser):
     """
     기본 User 모델 확장: 역할/헬퍼/인덱스/스코프
@@ -12,6 +12,7 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         OWNER = 'OWNER', '사장님'
         STUDENT_GROUP = 'STUDENT_GROUP', '학생단체'
+        STUDENT = 'STUDENT', '학생'
 
     user_role = models.CharField(
         max_length=20,
@@ -19,7 +20,7 @@ class User(AbstractUser):
         default=Role.OWNER,              #  기본값 (변경 가능)
         db_index=True,                   #  역할로 필터링 잦으면 인덱스
         verbose_name='사용자 역할',
-        help_text='사장님 또는 학생단체 중 하나'
+        help_text='사장님, 학생단체, 학생 중 하나'
     )
 
     # 자기참조 M2M는 through로 관리 (시간/제약/확장성)
@@ -68,7 +69,7 @@ class Like(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Constraints: 유저 간 찜 관계는 유일해야 하며, 자기 자신을 찜할 수 없다.
-    # indexes: user와 user, target을 동시에 쿼리할 때 성능 향상
+    # Indexes: user와 user, target을 동시에 쿼리할 때 성능 향상
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['user', 'target'], name='uq_like_user_target'),
