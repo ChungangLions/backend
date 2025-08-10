@@ -17,7 +17,7 @@ class AccountsAPITests(TestCase):
             username="bob", password="pass1234", email="bob@example.com", user_role=User.Role.STUDENT_GROUP
         )
         cls.cara = User.objects.create_user(
-            username="cara", password="pass1234", email="cara@example.com", user_role=User.Role.OWNER
+            username="cara", password="pass1234", email="cara@example.com", user_role=User.Role.STUDENT
         )
 
         # bob이 미리 받은 찜 하나 생성: cara -> bob
