@@ -43,8 +43,12 @@ class User(AbstractUser):
         return self.user_role == self.Role.OWNER
 
     @property
-    def is_student(self) -> bool:
+    def is_student_group(self) -> bool:
         return self.user_role == self.Role.STUDENT_GROUP
+
+    @property
+    def is_student(self) -> bool:
+        return self.user_role == self.Role.STUDENT
 
     # 헬퍼 프로퍼티 사용 방법, 함수 처럼 사용 가능
     '''
@@ -52,8 +56,10 @@ class User(AbstractUser):
 
     if u.is_owner:
         print("사장님 권한 메뉴 노출")
-    elif u.is_student:
+    elif u.is_student_group:
         print("학생단체 권한 메뉴 노출")
+    elif u.is_student:
+        print("학생 권한 메뉴 노출")
     '''
 
     def __str__(self):
