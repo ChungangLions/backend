@@ -166,28 +166,6 @@ class Menu(models.Model):
 
     def __str__(self):
         return f"{self.owner_profile.profile_name} - {self.name}"
-
-class PartnershipTpye(models.Model):
-    profile_id = models.ForeignKey(
-    OwnerProfile, on_delete=models.CASCADE, related_name="partnership_type"
-    )
-    name = models.CharField(max_length=50)
-    price = models.PositiveIntegerField(validators=[MinValueValidator(0)])
-    image = models.ImageField(
-        upload_to="owner_profile/menus/",
-        blank=True, null=True,
-    )
-    order = models.PositiveSmallIntegerField(
-        default=0, help_text="표시 순서"
-    )
-
-    class Meta:
-        ordering = ["order", "id"] # 쿼리셋 정렬 순서 order -> id
-        unique_together = [("owner_profile", "name")]  # 같은 상호 내 중복 메뉴명 방지
-
-    def __str__(self):
-        return f"{self.owner_profile.profile_name} - {self.name}"
-     
      
     
 # ------ 학생단체 프로필 ------

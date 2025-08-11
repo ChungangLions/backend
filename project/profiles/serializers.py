@@ -34,14 +34,14 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = OwnerProfile
         fields = [
-            'id', 'user', 'user_email',
+            'id', 'user', 'user_email', 'campus_name',
             'business_type', 'profile_name', 'business_day',
             'partnership_goal', 'partnership_goal_other',
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
             'created_at', 'modified_at',
-            'photos', 'menus'
+            'photos', 'menus', 'partnership_type', 'comment'
         ]
         read_only_fields = ['id', 'created_at', 'modified_at']
     
@@ -55,11 +55,11 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
         model = OwnerProfile
         fields = [
             'user', 'business_type', 'profile_name', 'business_day',
-            'partnership_goal', 'partnership_goal_other',
+            'partnership_goal', 'partnership_goal_other', 'campus_name',
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
-            'photos_data', 'menus_data'
+            'photos_data', 'menus_data', 'partnership_type', 'comment'
         ]
         
     def validate_margin_rate(self, value):
@@ -130,13 +130,13 @@ class StudentGroupProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentGroupProfile
         fields = [
-            'id', 'user',
+            'id', 'user', 'council_name',
             'position', 'student_size',
             'term_start', 'term_end', 'term_duration',
             'partnership_start', 'partnership_end', 'partnership_duration',
             'partnership_record',
             'record_name', 'record_start', 'record_end',
-            'photos'
+            'photos', 'university_name'
         ]
         read_only_fields = ['id']
 
@@ -148,11 +148,11 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentGroupProfile
         fields = [
-            'user', 'position', 'student_size',
+            'user', 'position', 'student_size', 'council_name',
             'term_start', 'term_end',
             'partnership_start', 'partnership_end',
             'partnership_record', 'record_name', 'record_start', 'record_end',
-            'photos_data'
+            'photos_data', 'university_name'
         ]
 
     def validate(self, data):
