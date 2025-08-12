@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import (
     OwnerProfile, OwnerPhoto, Menu,
     StudentGroupProfile, StudentPhoto,
-    PartnershipGoal, Service, PartnershipRecord
+    PartnershipGoal, Service,
+    StudentProfile
 )
 
 # ------ 업체 프로필 관련 Serializers ------
@@ -34,7 +35,7 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = OwnerProfile
         fields = [
-            'id', 'user', 'user_email', 'campus_name',
+            'id', 'user', 'campus_name',
             'business_type', 'profile_name', 'business_day',
             'partnership_goal', 'partnership_goal_other',
             'average_sales', 'margin_rate',
@@ -43,7 +44,7 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
             'created_at', 'modified_at',
             'photos', 'menus', 'partnership_type', 'comment'
         ]
-        read_only_fields = ['id', 'created_at', 'modified_at']
+        read_only_fields = ['id', 'user', 'created_at', 'modified_at']
     
 # --- 업체 프로필 생성/수정용 ---
 class OwnerProfileCreateSerializer(serializers.ModelSerializer):
@@ -61,6 +62,7 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
             'available_service', 'available_service_other',
             'photos_data', 'menus_data', 'partnership_type', 'comment'
         ]
+        read_only_fields = ['user']
         
     def validate_margin_rate(self, value):
         if value < 0 or value > 100:
@@ -132,13 +134,12 @@ class StudentGroupProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'council_name',
             'position', 'student_size',
-            'term_start', 'term_end', 'term_duration',
-            'partnership_start', 'partnership_end', 'partnership_duration',
-            'partnership_record',
-            'record_name', 'record_start', 'record_end',
+            'term_start', 'term_end',
+            'partnership_start', 'partnership_end',
+            'partnership_count',
             'photos', 'university_name'
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'user']
 
 # --- 학생단체 프로필 생성/수정용 ---
 class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
@@ -151,9 +152,9 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
             'user', 'position', 'student_size', 'council_name',
             'term_start', 'term_end',
             'partnership_start', 'partnership_end',
-            'partnership_record', 'record_name', 'record_start', 'record_end',
             'photos_data', 'university_name'
         ]
+        read_only_fields = ['user']
 
     def validate(self, data):
         # 임기 날짜 검증
@@ -166,15 +167,6 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
             if data['partnership_start'] >= data['partnership_end']:
                 raise serializers.ValidationError("제휴 종료일은 시작일보다 늦어야 합니다.")
         
-        # 제휴 이력이 있을 때 기록 정보 필수
-        if data.get('partnership_record') == PartnershipRecord.TRUE:
-            if not data.get('record_name'):
-                raise serializers.ValidationError("제휴 이력이 있을 때는 업체명을 입력해야 합니다.")
-            if not data.get('record_start') or not data.get('record_end'):
-                raise serializers.ValidationError("제휴 이력이 있을 때는 제휴 기간을 입력해야 합니다.")
-            if data.get('record_start') >= data.get('record_end'):
-                raise serializers.ValidationError("제휴 이력의 종료일은 시작일보다 늦어야 합니다.")
-        
         return data
     
     def create(self, validated_data):
@@ -183,7 +175,7 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
         student_profile = StudentGroupProfile.objects.create(**validated_data)
         
         for photo_data in photos_data:
-            StudentPhoto.objects.create(owner_profile=student_profile, **photo_data)
+            StudentPhoto.objects.create(student_group_profile=student_profile, **photo_data)
         
         return student_profile
     
@@ -197,6 +189,38 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
         if photos_data:
             instance.photos.all().delete()
             for photo_data in photos_data:
-                StudentPhoto.objects.create(owner_profile=instance, **photo_data)
+                StudentPhoto.objects.create(student_group_profile=instance, **photo_data)
         
         return instance
+
+# ------ 학생 프로필 관련 Serializers ------
+
+# --- 학생 프로필 조회용 ---
+class StudentProfileSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'id', 'user', 
+            'university_name', 'image'
+        ]
+        read_only_fields = ['id', 'user']
+
+# --- 학생 프로필 생성/수정용 ---
+class StudentProfileCreateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'university_name', 'image'
+        ]
+    
+    def validate_image(self, value):
+        """이미지 파일 검증"""
+        if value:
+            # 파일 형식 검증
+            valid_extensions = ['.jpg', '.jpeg', '.png', '.gif']
+            if not any(value.name.lower().endswith(ext) for ext in valid_extensions):
+                raise serializers.ValidationError("지원되지 않는 이미지 형식입니다.")
+        
+        return value

@@ -168,4 +168,7 @@ AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
 
+# 기본 업체 대표 사진
+DEFAULT_OWNER_PHOTO_PATH = "defaults/owner_profile.png"
+
 

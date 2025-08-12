@@ -1,86 +1,118 @@
 from django.shortcuts import render
-from serializers import (
-OwnerProfileCreateSerializer, 
-OwnerProfileSerializer, 
-StudentGroupProfileCreateSerializer,
-StudentGroupProfileSerializer)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import Http404
-
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import Q
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from .permissions import IsOwnerOrReadOnly
 from .models import (
     OwnerProfile, OwnerPhoto, Menu, 
-    StudentGroupProfile, StudentPhoto
+    StudentGroupProfile, StudentPhoto,
+    StudentProfile
 )
 from .serializers import (
     OwnerProfileSerializer, OwnerProfileCreateSerializer,
     OwnerPhotoSerializer, MenuSerializer,
     StudentGroupProfileSerializer, StudentGroupProfileCreateSerializer,
-    StudentPhotoSerializer
+    StudentPhotoSerializer,
+    StudentProfileSerializer, StudentProfileCreateSerializer
 )
+from django.conf import settings
 
-# ------ »çÀå´Ô ÇÁ·ÎÇÊ °ü·Ã Views ------
+MAX_OWNER_PHOTOS = 10
+MAX_OWNER_MENUS = 8
+
+# ------ ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ê´€ë ¨ Views ------
 class OwnerProfileListCreateView(APIView):
-    """»çÀå´Ô ÇÁ·ÎÇÊ ¸ñ·Ï Á¶È¸ ¹× »ı¼º"""
+    """ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ëª©ë¡ ì¡°íšŒ, ìƒì„±"""
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
+    @swagger_auto_schema(
+        operation_summary="ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ëª©ë¡ ì¡°íšŒ",
+        operation_description="ëª¨ë“  ì‚¬ì¥ë‹˜ í”„ë¡œí•„ì„ ì¡°íšŒí•©ë‹ˆë‹¤.",
+        responses={200: OwnerProfileSerializer(many=True)}
+    )
     def get(self, request):
-        """»çÀå´Ô ÇÁ·ÎÇÊ ¸ñ·Ï Á¶È¸"""
         profiles = OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus')
         
-        # ÇÊÅÍ¸µ
+        # í•„í„°ë§
         business_type = request.query_params.get('business_type')
-        partnership_goal = request.query_params.get('partnership_goal')
-        campus_name = request.query_params.get('campus_name')
+        partnership_type = request.query_params.get('partnership_type')
         
         if business_type:
             profiles = profiles.filter(business_type=business_type)
-        if partnership_goal:
-            profiles = profiles.filter(partnership_goal=partnership_goal)
-        if campus_name:
-            profiles = profiles.filter(campus_name__icontains=campus_name)
+        if partnership_type:
+            profiles = profiles.filter(partnership_type=partnership_type)
             
         serializer = OwnerProfileSerializer(profiles, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(
+        operation_summary="ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ìƒì„±",
+        operation_description="ìƒˆë¡œìš´ ì‚¬ì¥ë‹˜ í”„ë¡œí•„ì„ ìƒì„±í•©ë‹ˆë‹¤.",
+        request_body=OwnerProfileCreateSerializer,
+        responses={201: OwnerProfileCreateSerializer, 400: "ì˜ëª»ëœ ìš”ì²­"}
+    )
     def post(self, request):
-        """»çÀå´Ô ÇÁ·ÎÇÊ »ı¼º"""
         serializer = OwnerProfileCreateSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
                 profile = serializer.save(user=request.user)
                 
-                # ÇÁ·ÎÇÊ »çÁø ¾÷·Îµå Ã³¸®
+                # ëŒ€í‘œ ì‚¬ì§„ ì—…ë¡œë“œ ì²˜ë¦¬
                 photos = request.FILES.getlist('photos')
-                for idx, photo in enumerate(photos):
+                if photos:
+                    existing = profile.photos.count()
+                    if existing + len(photos) > MAX_OWNER_PHOTOS:
+                        return Response(
+                            {"message": f"ëŒ€í‘œ ì‚¬ì§„ì€ ìµœëŒ€ {MAX_OWNER_PHOTOS}ì¥ê¹Œì§€ ì—…ë¡œë“œí•  ìˆ˜ ìˆìŠµë‹ˆë‹¤."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    # í˜„ì¬ ê°œìˆ˜ë¶€í„° ìˆœì„œ ì´ì–´ë¶™ì´ê¸°
+                    start_order = existing
+                    for i, photo in enumerate(photos, start=start_order):
+                        OwnerPhoto.objects.create(
+                            owner_profile=profile,
+                            image=photo,
+                            order=i
+                        )
+                
+                # ë©”ë‰´ ì´ë¯¸ì§€ ì²˜ë¦¬
+                menu_images = request.FILES.getlist('menu_images')
+                menus_data = request.data.get('menus', [])
+                
+                if menus_data:
+                    existing = profile.menus.count()
+                    if existing + len(menus_data) > MAX_OWNER_MENUS:
+                        return Response(
+                            {"detail": f"ëŒ€í‘œ ë©”ë‰´ëŠ” ìµœëŒ€ {MAX_OWNER_MENUS}ê°œê¹Œì§€ ë“±ë¡í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    start_order = existing
+                    for idx, menu_data in enumerate(menus_data, start=start_order):
+                        menu_image = menu_images[idx - start_order] if (idx - start_order) < len(menu_images) else None
+                        Menu.objects.create(
+                            owner_profile=profile,
+                            name=menu_data.get('name'),
+                            price=menu_data.get('price'),
+                            image=menu_image,
+                            order=idx
+                        )
+
+                # ---- ê¸°ë³¸ ëŒ€í‘œ ì‚¬ì§„ ìë™ ìƒì„± ----
+                if profile.photos.count() == 0:
                     OwnerPhoto.objects.create(
                         owner_profile=profile,
-                        image=photo,
-                        order=idx
+                        image=settings.DEFAULT_OWNER_PHOTO_PATH,
+                        order=0
                     )
-                
-                # ¸Ş´º ÀÌ¹ÌÁö Ã³¸®
-                menu_images = request.FILES.getlist('menu_images')
-                menus_data = request.data.getlist('menus', [])
-                
-                for idx, menu_data in enumerate(menus_data):
-                    menu_image = menu_images[idx] if idx < len(menu_images) else None
-                    Menu.objects.create(
-                        owner_profile=profile,
-                        name=menu_data.get('name'),
-                        price=menu_data.get('price'),
-                        image=menu_image,
-                        order=idx
-                    )
-            
-            # »ı¼ºµÈ ÇÁ·ÎÇÊÀ» ´Ù½Ã Á¶È¸ÇÏ¿© °ü·Ã µ¥ÀÌÅÍ¿Í ÇÔ²² ¹İÈ¯
+
+            # ìƒì„±ëœ í”„ë¡œí•„ì„ ë‹¤ì‹œ ì¡°íšŒí•˜ì—¬ ê´€ë ¨ ë°ì´í„°ì™€ í•¨ê»˜ ë°˜í™˜
             created_profile = OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus').get(id=profile.id)
             return Response(
                 OwnerProfileSerializer(created_profile).data, 
@@ -90,8 +122,8 @@ class OwnerProfileListCreateView(APIView):
 
 
 class OwnerProfileDetailView(APIView):
-    """»çÀå´Ô ÇÁ·ÎÇÊ »ó¼¼ Á¶È¸, ¼öÁ¤, »èÁ¦"""
-    permission_classes = [IsAuthenticated]
+    """ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ìƒì„¸ ì¡°íšŒ, ìˆ˜ì •, ì‚­ì œ"""
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_object(self, pk):
@@ -100,72 +132,33 @@ class OwnerProfileDetailView(APIView):
             pk=pk
         )
     
+    @swagger_auto_schema(
+        operation_summary="ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ìƒì„¸ ì¡°íšŒ",
+        operation_description="ìƒì„¸ ì‚¬ì¥ë‹˜ í”„ë¡œí•„ì„ ì¡°íšŒí•©ë‹ˆë‹¤.",
+        responses={200: OwnerProfileSerializer}
+    )
     def get(self, request, pk):
-        """ÇÁ·ÎÇÊ »ó¼¼ Á¶È¸"""
         profile = self.get_object(pk)
         serializer = OwnerProfileSerializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    '''
-    def put(self, request, pk):
-        """ÇÁ·ÎÇÊ ÀüÃ¼ ¼öÁ¤"""
-        profile = self.get_object(pk)
-        
-        # ±ÇÇÑ È®ÀÎ (º»ÀÎ¸¸ ¼öÁ¤ °¡´É)
-        if profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¸¸ ¼öÁ¤ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        serializer = OwnerProfileCreateSerializer(profile, data=request.data)
-        if serializer.is_valid():
-            with transaction.atomic():
-                profile = serializer.save()
-                
-                # ±âÁ¸ »çÁøµé »èÁ¦ ÈÄ »õ·Î ¾÷·Îµå
-                if 'photos' in request.FILES:
-                    profile.photos.all().delete()
-                    photos = request.FILES.getlist('photos')
-                    for idx, photo in enumerate(photos):
-                        OwnerPhoto.objects.create(
-                            owner_profile=profile,
-                            image=photo,
-                            order=idx
-                        )
-                
-                # ±âÁ¸ ¸Ş´ºµé »èÁ¦ ÈÄ »õ·Î »ı¼º
-                if request.data.get('menus'):
-                    profile.menus.all().delete()
-                    menus_data = request.data.getlist('menus', [])
-                    menu_images = request.FILES.getlist('menu_images', [])
-                    
-                    for idx, menu_data in enumerate(menus_data):
-                        menu_image = menu_images[idx] if idx < len(menu_images) else None
-                        Menu.objects.create(
-                            owner_profile=profile,
-                            name=menu_data.get('name'),
-                            price=menu_data.get('price'),
-                            image=menu_image,
-                            order=idx
-                        )
-            
-            # ¼öÁ¤µÈ ÇÁ·ÎÇÊÀ» ´Ù½Ã Á¶È¸ÇÏ¿© ¹İÈ¯
-            updated_profile = OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus').get(id=profile.id)
-            return Response(
-                OwnerProfileSerializer(updated_profile).data, 
-                status=status.HTTP_200_OK
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    '''
+    
+    @swagger_auto_schema(
+        operation_summary="ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ë¶€ë¶„ ìˆ˜ì •",
+        operation_description=(
+            "ì‚¬ì¥ë‹˜ í”„ë¡œí•„ì˜ ì¼ë¶€ í•„ë“œë¥¼ ìˆ˜ì •í•©ë‹ˆë‹¤."
+        ),
+        request_body=OwnerProfileCreateSerializer,  
+        responses={
+            200: OwnerProfileSerializer,          
+            400: "ìœ íš¨ì„± ê²€ì‚¬ ì‹¤íŒ¨",
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
     def patch(self, request, pk):
-        """ÇÁ·ÎÇÊ ºÎºĞ ¼öÁ¤"""
         profile = self.get_object(pk)
         
-        if profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¸¸ ¼öÁ¤ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, profile)
         
         serializer = OwnerProfileCreateSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
@@ -177,78 +170,139 @@ class OwnerProfileDetailView(APIView):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        operation_summary="ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ì‚­ì œ",
+        operation_description=(
+            "ë³¸ì¸ì´ ì†Œìœ í•œ ì‚¬ì¥ë‹˜ í”„ë¡œí•„ì„ ì‚­ì œí•©ë‹ˆë‹¤."
+        ),
+        responses={
+            204: openapi.Response(description="ì‚­ì œ ì„±ê³µ"),
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
     def delete(self, request, pk):
-        """ÇÁ·ÎÇÊ »èÁ¦"""
         profile = self.get_object(pk)
         
-        if profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¸¸ »èÁ¦ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, profile)
         
         profile.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class OwnerPhotoView(APIView):
-    """»çÀå´Ô ÇÁ·ÎÇÊ »çÁø °ü¸®"""
-    permission_classes = [IsAuthenticated]
+    """ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ì‚¬ì§„ ê´€ë¦¬"""
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     parser_classes = [MultiPartParser, FormParser]
     
+    @swagger_auto_schema(
+        operation_summary="ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ì‚¬ì§„ ì¶”ê°€",
+        operation_description=( "ì§€ì •í•œ í”„ë¡œí•„ ID(`profile_id`)ì— ì‚¬ì§„ì„ ì¶”ê°€í•©ë‹ˆë‹¤."),
+        manual_parameters=[
+            openapi.Parameter('profile_id',openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER,required=True),
+        ],
+        request_body=OwnerPhotoSerializer,
+        responses={
+            201: OwnerPhotoSerializer,
+            400: "ìš”ì²­ ë°ì´í„° ì˜¤ë¥˜",
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
     def post(self, request, profile_id):
-        """ÇÁ·ÎÇÊ »çÁø Ãß°¡"""
         profile = get_object_or_404(OwnerProfile, pk=profile_id)
         
-        if profile.user != request.user:
+        self.check_object_permissions(request, profile)
+
+        # ìµœëŒ€ 10ì¥ ì œí•œ
+        if profile.photos.count() >= MAX_OWNER_PHOTOS:
             return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¿¡¸¸ »çÁøÀ» Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
+                {"message": f"ëŒ€í‘œ ì‚¬ì§„ì€ ìµœëŒ€ {MAX_OWNER_PHOTOS}ì¥ê¹Œì§€ ì—…ë¡œë“œí•  ìˆ˜ ìˆìŠµë‹ˆë‹¤."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         
         serializer = OwnerPhotoSerializer(data=request.data)
         if serializer.is_valid():
-            photo = serializer.save(owner_profile=profile)
+            photo = serializer.save(owner_profile=profile, order=profile.photos.count())
             return Response(
                 OwnerPhotoSerializer(photo).data, 
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        operation_summary="ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ì‚¬ì§„ ì‚­ì œ",
+        operation_description=(
+            "ì§€ì •í•œ í”„ë¡œí•„ ID(`profile_id`)ì™€ ì‚¬ì§„ ID(`photo_id`)ë¥¼ ê¸°ë°˜ìœ¼ë¡œ "
+            "ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ì‚¬ì§„ì„ ì‚­ì œí•©ë‹ˆë‹¤."
+        ),
+        manual_parameters=[
+            openapi.Parameter('profile_id', openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter('photo_id', openapi.IN_PATH,
+            description="ì‚¬ì§„ ID", type=openapi.TYPE_INTEGER, required=True),
+        ],
+        responses={
+            204: openapi.Response(description="ì‚­ì œ ì„±ê³µ"),
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í•´ë‹¹ ì‚¬ì§„ì„ ì°¾ì„ ìˆ˜ ì—†ìŒ"
+        }
+    )
     def delete(self, request, profile_id, photo_id):
-        """Æ¯Á¤ »çÁø »èÁ¦"""
         photo = get_object_or_404(OwnerPhoto, pk=photo_id, owner_profile_id=profile_id)
         
-        if photo.owner_profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ »çÁø¸¸ »èÁ¦ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, photo)
         
         photo.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MenuView(APIView):
-    """¸Ş´º °ü¸®"""
-    permission_classes = [IsAuthenticated]
+    """ë©”ë‰´ ê´€ë¦¬"""
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
+    @swagger_auto_schema(
+        operation_summary="íŠ¹ì • í”„ë¡œí•„ì˜ ëŒ€í‘œë©”ë‰´ ëª©ë¡ ì¡°íšŒ",
+        operation_description="í”„ë¡œí•„ ID(`profile_id`)ì— í•´ë‹¹í•˜ëŠ” ëª¨ë“  ëŒ€í‘œë©”ë‰´ë¥¼ ì¡°íšŒí•©ë‹ˆë‹¤.",
+        manual_parameters=[
+            openapi.Parameter('profile_id', openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        responses={200: MenuSerializer(many=True)}
+    )
     def get(self, request, profile_id):
-        """Æ¯Á¤ ÇÁ·ÎÇÊÀÇ ¸Ş´º ¸ñ·Ï Á¶È¸"""
         profile = get_object_or_404(OwnerProfile, pk=profile_id)
         menus = profile.menus.all()
         serializer = MenuSerializer(menus, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(
+        operation_summary="ëŒ€í‘œë©”ë‰´ ì¶”ê°€",
+        operation_description="ë³¸ì¸ì˜ í”„ë¡œí•„(`profile_id`)ì— ìƒˆë¡œìš´ ëŒ€í‘œë©”ë‰´ë¥¼ ì¶”ê°€í•©ë‹ˆë‹¤.",
+        manual_parameters=[
+            openapi.Parameter('profile_id', openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        request_body=MenuSerializer,
+        responses={
+            201: MenuSerializer,
+            400: "ìš”ì²­ ë°ì´í„° ì˜¤ë¥˜",
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
     def post(self, request, profile_id):
-        """¸Ş´º Ãß°¡"""
         profile = get_object_or_404(OwnerProfile, pk=profile_id)
         
-        if profile.user != request.user:
+        self.check_object_permissions(request, profile)
+
+        # ìµœëŒ€ 8ê°œ ì œí•œ
+        if profile.menus.count() >= MAX_OWNER_MENUS:
             return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¿¡¸¸ ¸Ş´º¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
+                {"message": f"ëŒ€í‘œ ë©”ë‰´ëŠ” ìµœëŒ€ {MAX_OWNER_MENUS}ê°œê¹Œì§€ ë“±ë¡í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         
         serializer = MenuSerializer(data=request.data)
@@ -260,15 +314,27 @@ class MenuView(APIView):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        operation_summary="ëŒ€í‘œë©”ë‰´ ìˆ˜ì •",
+        operation_description="íŠ¹ì • ëŒ€í‘œë©”ë‰´(`menu_id`)ë¥¼ ìˆ˜ì •í•©ë‹ˆë‹¤.",
+        manual_parameters=[
+            openapi.Parameter('profile_id', openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter('menu_id', openapi.IN_PATH,
+            description="ë©”ë‰´ ID", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        request_body=MenuSerializer,
+        responses={
+            200: MenuSerializer,
+            400: "ìš”ì²­ ë°ì´í„° ì˜¤ë¥˜",
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "ë©”ë‰´ ì—†ìŒ"
+        }
+    )
     def put(self, request, profile_id, menu_id):
-        """¸Ş´º ¼öÁ¤"""
         menu = get_object_or_404(Menu, pk=menu_id, owner_profile_id=profile_id)
         
-        if menu.owner_profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ¸Ş´º¸¸ ¼öÁ¤ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, menu)
         
         serializer = MenuSerializer(menu, data=request.data)
         if serializer.is_valid():
@@ -279,62 +345,75 @@ class MenuView(APIView):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        operation_summary="ëŒ€í‘œë©”ë‰´ ì‚­ì œ",
+        operation_description="íŠ¹ì • ëŒ€í‘œë©”ë‰´(`menu_id`)ë¥¼ ì‚­ì œí•©ë‹ˆë‹¤",
+        manual_parameters=[
+            openapi.Parameter('profile_id', openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter('menu_id', openapi.IN_PATH,
+            description="ë©”ë‰´ ID", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        responses={
+            204: openapi.Response(description="ì‚­ì œ ì„±ê³µ"),
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "ë©”ë‰´ ì—†ìŒ"
+        }
+    )
     def delete(self, request, profile_id, menu_id):
-        """¸Ş´º »èÁ¦"""
         menu = get_object_or_404(Menu, pk=menu_id, owner_profile_id=profile_id)
         
-        if menu.owner_profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ¸Ş´º¸¸ »èÁ¦ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, menu)
         
         menu.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# ------ ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ °ü·Ã Views ------
+# ------ í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ê´€ë ¨ Views ------
 class StudentGroupProfileListCreateView(APIView):
-    """ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ ¸ñ·Ï Á¶È¸ ¹× »ı¼º"""
+    """í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ëª©ë¡ ì¡°íšŒ ë° ìƒì„±"""
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ëª©ë¡ ì¡°íšŒ",
+        operation_description="ëª¨ë“  í•™ìƒë‹¨ì²´ í”„ë¡œí•„ì„ ì¡°íšŒí•©ë‹ˆë‹¤.",
+        responses={200: StudentGroupProfileSerializer(many=True)}
+    )
     def get(self, request):
-        """ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ ¸ñ·Ï Á¶È¸"""
         profiles = StudentGroupProfile.objects.select_related('user').prefetch_related('photos')
         
-        # ÇÊÅÍ¸µ
-        university_name = request.query_params.get('university_name')
-        partnership_record = request.query_params.get('partnership_record')
-        council_name = request.query_params.get('council_name')
+        # í•„í„°ë§
+        partnership_count = request.query_params.get('partnership_count')
         
-        if university_name:
-            profiles = profiles.filter(university_name__icontains=university_name)
-        if partnership_record:
-            profiles = profiles.filter(partnership_record=partnership_record)
-        if council_name:
-            profiles = profiles.filter(council_name__icontains=council_name)
+        if partnership_count:
+            profiles = profiles.filter(partnership_count=partnership_count)
             
         serializer = StudentGroupProfileSerializer(profiles, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ìƒì„±",
+        operation_description="ìƒˆë¡œìš´ í•™ìƒë‹¨ì²´ í”„ë¡œí•„ì„ ìƒì„±í•©ë‹ˆë‹¤.",
+        request_body=StudentGroupProfileCreateSerializer,
+        responses={201: StudentGroupProfileCreateSerializer, 400: "ì˜ëª»ëœ ìš”ì²­"}
+    )
     def post(self, request):
-        """ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ »ı¼º"""
         serializer = StudentGroupProfileCreateSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
                 profile = serializer.save(user=request.user)
                 
-                # ÇÁ·ÎÇÊ »çÁø ¾÷·Îµå Ã³¸®
+                # í”„ë¡œí•„ ì‚¬ì§„ ì—…ë¡œë“œ ì²˜ë¦¬
                 photos = request.FILES.getlist('photos')
                 for idx, photo in enumerate(photos):
                     StudentPhoto.objects.create(
-                        owner_profile=profile,
+                        student_group_profile=profile,
                         image=photo,
                         order=idx
                     )
             
-            # »ı¼ºµÈ ÇÁ·ÎÇÊÀ» ´Ù½Ã Á¶È¸ÇÏ¿© °ü·Ã µ¥ÀÌÅÍ¿Í ÇÔ²² ¹İÈ¯
+            # ìƒì„±ëœ í”„ë¡œí•„ì„ ë‹¤ì‹œ ì¡°íšŒí•˜ì—¬ ê´€ë ¨ ë°ì´í„°ì™€ í•¨ê»˜ ë°˜í™˜
             created_profile = StudentGroupProfile.objects.select_related('user').prefetch_related('photos').get(id=profile.id)
             return Response(
                 StudentGroupProfileSerializer(created_profile).data, 
@@ -344,8 +423,8 @@ class StudentGroupProfileListCreateView(APIView):
 
 
 class StudentGroupProfileDetailView(APIView):
-    """ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ »ó¼¼ Á¶È¸, ¼öÁ¤, »èÁ¦"""
-    permission_classes = [IsAuthenticated]
+    """í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ìƒì„¸ ì¡°íšŒ, ìˆ˜ì •, ì‚­ì œ"""
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_object(self, pk):
@@ -354,55 +433,33 @@ class StudentGroupProfileDetailView(APIView):
             pk=pk
         )
     
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ìƒì„¸ ì¡°íšŒ",
+        operation_description="ìƒì„¸ í•™ìƒë‹¨ì²´ í”„ë¡œí•„ì„ ì¡°íšŒí•©ë‹ˆë‹¤.",
+        responses={200: StudentGroupProfileSerializer}
+    )
     def get(self, request, pk):
-        """ÇÁ·ÎÇÊ »ó¼¼ Á¶È¸"""
         profile = self.get_object(pk)
         serializer = StudentGroupProfileSerializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    def put(self, request, pk):
-        """ÇÁ·ÎÇÊ ÀüÃ¼ ¼öÁ¤"""
-        profile = self.get_object(pk)
-        
-        if profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¸¸ ¼öÁ¤ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        serializer = StudentGroupProfileCreateSerializer(profile, data=request.data)
-        if serializer.is_valid():
-            with transaction.atomic():
-                profile = serializer.save()
-                
-                # ±âÁ¸ »çÁøµé »èÁ¦ ÈÄ »õ·Î ¾÷·Îµå
-                if 'photos' in request.FILES:
-                    profile.photos.all().delete()
-                    photos = request.FILES.getlist('photos')
-                    for idx, photo in enumerate(photos):
-                        StudentPhoto.objects.create(
-                            owner_profile=profile,
-                            image=photo,
-                            order=idx
-                        )
-            
-            # ¼öÁ¤µÈ ÇÁ·ÎÇÊÀ» ´Ù½Ã Á¶È¸ÇÏ¿© ¹İÈ¯
-            updated_profile = StudentGroupProfile.objects.select_related('user').prefetch_related('photos').get(id=profile.id)
-            return Response(
-                StudentGroupProfileSerializer(updated_profile).data, 
-                status=status.HTTP_200_OK
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ë¶€ë¶„ ìˆ˜ì •",
+        operation_description=(
+            "í•™ìƒë‹¨ì²´ í”„ë¡œí•„ì˜ ì¼ë¶€ í•„ë“œë¥¼ ìˆ˜ì •í•©ë‹ˆë‹¤."
+        ),
+        request_body=StudentGroupProfileCreateSerializer,  
+        responses={
+            200: StudentGroupProfileSerializer,          
+            400: "ìœ íš¨ì„± ê²€ì‚¬ ì‹¤íŒ¨",
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
     def patch(self, request, pk):
-        """ÇÁ·ÎÇÊ ºÎºĞ ¼öÁ¤"""
         profile = self.get_object(pk)
         
-        if profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¸¸ ¼öÁ¤ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, profile)
         
         serializer = StudentGroupProfileCreateSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
@@ -414,130 +471,185 @@ class StudentGroupProfileDetailView(APIView):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ì‚­ì œ",
+        operation_description=(
+            "ë³¸ì¸ì´ ì†Œìœ í•œ í•™ìƒë‹¨ì²´ í”„ë¡œí•„ì„ ì‚­ì œí•©ë‹ˆë‹¤."
+        ),
+        responses={
+            204: openapi.Response(description="ì‚­ì œ ì„±ê³µ"),
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
     def delete(self, request, pk):
-        """ÇÁ·ÎÇÊ »èÁ¦"""
         profile = self.get_object(pk)
         
-        if profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¸¸ »èÁ¦ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, profile)
         
         profile.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class StudentPhotoView(APIView):
-    """ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ »çÁø °ü¸®"""
-    permission_classes = [IsAuthenticated]
+    """í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ì‚¬ì§„ ê´€ë¦¬"""
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     parser_classes = [MultiPartParser, FormParser]
     
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒë‹¨ì²´ ì‚¬ì§„ ì¶”ê°€",
+        operation_description="ë³¸ì¸ì˜ í”„ë¡œí•„(`profile_id`)ì— ìƒˆë¡œìš´ ì‚¬ì§„ë¥¼ ì¶”ê°€í•©ë‹ˆë‹¤.",
+        manual_parameters=[
+            openapi.Parameter('profile_id', openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        request_body=StudentPhotoSerializer,
+        responses={
+            201: StudentPhotoSerializer,
+            400: "ìš”ì²­ ë°ì´í„° ì˜¤ë¥˜",
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
     def post(self, request, profile_id):
-        """ÇÁ·ÎÇÊ »çÁø Ãß°¡"""
         profile = get_object_or_404(StudentGroupProfile, pk=profile_id)
         
-        if profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ ÇÁ·ÎÇÊ¿¡¸¸ »çÁøÀ» Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, profile)
         
         serializer = StudentPhotoSerializer(data=request.data)
         if serializer.is_valid():
-            photo = serializer.save(owner_profile=profile)
+            photo = serializer.save(student_group_profile=profile)
             return Response(
                 StudentPhotoSerializer(photo).data, 
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒë‹¨ì²´ ì‚¬ì§„ ì‚­ì œ",
+        operation_description="íŠ¹ì • ì‚¬ì§„(`photo_id`)ë¥¼ ì‚­ì œí•©ë‹ˆë‹¤",
+        manual_parameters=[
+            openapi.Parameter('profile_id', openapi.IN_PATH,
+            description="í”„ë¡œí•„ ID", type=openapi.TYPE_INTEGER, required=True),
+            openapi.Parameter('photo_id', openapi.IN_PATH,
+            description="ì‚¬ì§„ ID", type=openapi.TYPE_INTEGER, required=True)
+        ],
+        responses={
+            204: openapi.Response(description="ì‚­ì œ ì„±ê³µ"),
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "ì‚¬ì§„ ì—†ìŒ"
+        }
+    )
     def delete(self, request, profile_id, photo_id):
-        """Æ¯Á¤ »çÁø »èÁ¦"""
-        photo = get_object_or_404(StudentPhoto, pk=photo_id, owner_profile_id=profile_id)
+        photo = get_object_or_404(StudentPhoto, pk=photo_id, student_group_profile_id=profile_id)
         
-        if photo.owner_profile.user != request.user:
-            return Response(
-                {'error': 'º»ÀÎÀÇ »çÁø¸¸ »èÁ¦ÇÒ ¼ö ÀÖ½À´Ï´Ù.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        self.check_object_permissions(request, photo)
         
         photo.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-# ------ ³» ÇÁ·ÎÇÊ Á¶È¸ Views ------
-class MyProfileView(APIView):
-    """ÇöÀç »ç¿ëÀÚÀÇ ÇÁ·ÎÇÊ Á¶È¸"""
+# ------ í•™ìƒ í”„ë¡œí•„ ê´€ë ¨ Views ------
+class StudentProfileListCreateView(APIView):
+    """í•™ìƒ í”„ë¡œí•„ ëª©ë¡ ì¡°íšŒ ë° ìƒì„±"""
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒ í”„ë¡œí•„ ëª©ë¡ ì¡°íšŒ",
+        operation_description="ëª¨ë“  í•™ìƒ í”„ë¡œí•„ì„ ì¡°íšŒí•©ë‹ˆë‹¤.",
+        responses={200: StudentProfileSerializer(many=True)}
+    )
     def get(self, request):
-        """ÇöÀç »ç¿ëÀÚÀÇ ÇÁ·ÎÇÊ Á¤º¸ ¹İÈ¯"""
-        user = request.user
-        result = {}
-        
-        # »çÀå´Ô ÇÁ·ÎÇÊ È®ÀÎ
-        try:
-            owner_profile = OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus').get(user=user)
-            result['owner_profile'] = OwnerProfileSerializer(owner_profile).data
-            result['profile_type'] = 'owner'
-        except OwnerProfile.DoesNotExist:
-            pass
-        
-        # ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ È®ÀÎ
-        try:
-            student_profile = StudentGroupProfile.objects.select_related('user').prefetch_related('photos').get(user=user)
-            result['student_profile'] = StudentGroupProfileSerializer(student_profile).data
-            result['profile_type'] = result.get('profile_type', 'student')
-            if 'owner_profile' in result:
-                result['profile_type'] = 'both'
-        except StudentGroupProfile.DoesNotExist:
-            pass
-        
-        if not result:
+        profiles = StudentProfile.objects.select_related('user')
+            
+        serializer = StudentProfileSerializer(profiles, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒ í”„ë¡œí•„ ìƒì„±",
+        operation_description="ìƒˆë¡œìš´ í•™ìƒ í”„ë¡œí•„ì„ ìƒì„±í•©ë‹ˆë‹¤.",
+        request_body=StudentProfileCreateSerializer,
+        responses={201: StudentProfileCreateSerializer, 400: "ì˜ëª»ëœ ìš”ì²­"}
+    )
+    def post(self, request):
+        serializer = StudentProfileCreateSerializer(data=request.data)
+        if serializer.is_valid():
+    
+            profile = serializer.save(user=request.user)
+            
+            # ìƒì„±ëœ í”„ë¡œí•„ì„ ë‹¤ì‹œ ì¡°íšŒí•˜ì—¬ ê´€ë ¨ ë°ì´í„°ì™€ í•¨ê»˜ ë°˜í™˜
+            created_profile = StudentProfile.objects.select_related('user').get(id=profile.id)
             return Response(
-                {'message': 'µî·ÏµÈ ÇÁ·ÎÇÊÀÌ ¾ø½À´Ï´Ù.'}, 
-                status=status.HTTP_404_NOT_FOUND
+                StudentProfileSerializer(created_profile).data, 
+                status=status.HTTP_201_CREATED
             )
-        
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ------ ¸ÅÄª ¹× °Ë»ö Views ------
-class PartnershipMatchView(APIView):
-    """Á¦ÈŞ ¸ÅÄª ÃßÃµ"""
-    permission_classes = [IsAuthenticated]
+class StudentProfileDetailView(APIView):
+    """í•™ìƒ í”„ë¡œí•„ ìƒì„¸ ì¡°íšŒ, ìˆ˜ì •, ì‚­ì œ"""
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
-    def get(self, request):
-        """ÇöÀç »ç¿ëÀÚ¿¡°Ô ÀûÇÕÇÑ Á¦ÈŞ ÆÄÆ®³Ê ÃßÃµ"""
-        user = request.user
-        result = {'matches': []}
+    def get_object(self, pk):
+        return get_object_or_404(
+            StudentProfile.objects.select_related('user'),
+            pk=pk
+        )
+    
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒ í”„ë¡œí•„ ìƒì„¸ ì¡°íšŒ",
+        operation_description="ìƒì„¸ í•™ìƒ í”„ë¡œí•„ì„ ì¡°íšŒí•©ë‹ˆë‹¤.",
+        responses={200: StudentProfileSerializer}
+    )
+    def get(self, request, pk):
+        profile = self.get_object(pk)
+        serializer = StudentProfileSerializer(profile)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒ í”„ë¡œí•„ ë¶€ë¶„ ìˆ˜ì •",
+        operation_description=(
+            "í•™ìƒ í”„ë¡œí•„ì˜ ì¼ë¶€ í•„ë“œë¥¼ ìˆ˜ì •í•©ë‹ˆë‹¤."
+        ),
+        request_body=StudentProfileCreateSerializer,  
+        responses={
+            200: StudentProfileSerializer,          
+            400: "ìœ íš¨ì„± ê²€ì‚¬ ì‹¤íŒ¨",
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
+    def patch(self, request, pk):
+        profile = self.get_object(pk)
         
-        # »ç¿ëÀÚ ÇÁ·ÎÇÊ Å¸ÀÔ È®ÀÎ
-        try:
-            owner_profile = OwnerProfile.objects.get(user=user)
-            # »çÀå´ÔÀÎ °æ¿ì - ÁÖº¯ ÇĞ»ı´ÜÃ¼ ÃßÃµ
-            matched_profiles = StudentGroupProfile.objects.filter(
-                university_name__icontains=owner_profile.campus_name
-            ).select_related('user').prefetch_related('photos')[:10]
-            
-            result['user_type'] = 'owner'
-            result['matches'] = StudentGroupProfileSerializer(matched_profiles, many=True).data
-            
-        except OwnerProfile.DoesNotExist:
-            try:
-                student_profile = StudentGroupProfile.objects.get(user=user)
-                # ÇĞ»ı´ÜÃ¼ÀÎ °æ¿ì - ÁÖº¯ »çÀå´Ô ÃßÃµ
-                matched_profiles = OwnerProfile.objects.filter(
-                    campus_name__icontains=student_profile.university_name
-                ).select_related('user').prefetch_related('photos', 'menus')[:10]
-                
-                result['user_type'] = 'student'
-                result['matches'] = OwnerProfileSerializer(matched_profiles, many=True).data
-                
-            except StudentGroupProfile.DoesNotExist:
-                return Response(
-                    {'error': 'ÇÁ·ÎÇÊÀ» ¸ÕÀú ÀÛ¼ºÇØÁÖ¼¼¿ä.'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        self.check_object_permissions(request, profile)
         
-        return Response(result, status=status.HTTP_200_OK)
+        serializer = StudentProfileCreateSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            profile = serializer.save()
+            updated_profile = StudentProfile.objects.select_related('user').get(id=profile.id)
+            return Response(
+                StudentProfileSerializer(updated_profile).data, 
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @swagger_auto_schema(
+        operation_summary="í•™ìƒ í”„ë¡œí•„ ì‚­ì œ",
+        operation_description=(
+            "ë³¸ì¸ì´ ì†Œìœ í•œ í•™ìƒ í”„ë¡œí•„ì„ ì‚­ì œí•©ë‹ˆë‹¤."
+        ),
+        responses={
+            204: openapi.Response(description="ì‚­ì œ ì„±ê³µ"),
+            403: "ê¶Œí•œ ì—†ìŒ",
+            404: "í”„ë¡œí•„ ì—†ìŒ"
+        }
+    )
+    def delete(self, request, pk):
+        profile = self.get_object(pk)
+        
+        self.check_object_permissions(request, profile)
+        
+        profile.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

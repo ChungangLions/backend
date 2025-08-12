@@ -114,7 +114,7 @@ class OwnerProfile(models.Model):
     )
 
     # 한줄소개
-    comment = models.CharField(max_length=100)
+    comment = models.CharField(max_length=25)
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일')
     modified_at = models.DateTimeField(auto_now=True, verbose_name='수정일')
@@ -206,21 +206,11 @@ class StudentGroupProfile(models.Model):
     partnership_end = models.DateField(verbose_name="제휴 종료일")
 
     # 제휴 이력
-    partnership_record = models.CharField(
-        max_length=5,
-        choices=PartnershipRecord.choices,
-        blank=False,            
-        db_index=True,                   
-        verbose_name='제휴 이력',
-        help_text='있음, 없음 중 하나'
-    )
-    record_name = models.CharField(max_length=100, blank=True, verbose_name="제휴 업체명")
-    record_start = models.DateField(verbose_name="제휴 시작일")
-    record_end = models.DateField(verbose_name="제휴 종료일")
+    partnership_count = models.PositiveIntegerField(default=0, db_index=True)
 
 # 학생 단체 대표 사진 : 여러개 저장을 위해 별도 테이블 생성
 class StudentPhoto(models.Model):
-    owner_profile = models.ForeignKey(
+    student_group_profile = models.ForeignKey(
         StudentGroupProfile, on_delete=models.CASCADE, related_name="photos"
     )
     image = models.ImageField(upload_to="student_group_profile/photos/")
@@ -233,4 +223,30 @@ class StudentPhoto(models.Model):
         ordering = ["order", "id"] # 쿼리셋 정렬 순서 order -> id
     
     def __str__(self):
-        return f"{self.owner_profile.profile_name} - photo#{self.pk}"
+        return f"{self.student_group_profile.council_name} - photo#{self.pk}"
+    
+
+
+# ------ 학생 프로필 ------
+class StudentProfile(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_profile')
+    
+    # 학교
+    university_name = models.CharField(
+        max_length = 100, blank=True, null=True,
+        verbose_name="대학교명",
+        help_text="검색으로 선택한 캠퍼스명"
+    )
+
+    # 사진
+    image =  models.ImageField(
+        upload_to="student_profile/image/",
+        blank=True,
+        null=True
+    )
+
+    def __str__(self):
+        return f"{self.user.username}의 프로필"
+
+
