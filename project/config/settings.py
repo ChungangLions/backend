@@ -198,4 +198,14 @@ MEDIA_ROOT = ''
 # 기본 업체 대표 사진
 DEFAULT_OWNER_PHOTO_PATH = "defaults/owner_profile.png"
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,        # 별도 키 관리하면 더 좋음
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
 
