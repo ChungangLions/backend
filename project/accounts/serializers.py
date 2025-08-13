@@ -206,11 +206,7 @@ class LikeWriteSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         # user 주입(미제공 시 request.user 사용)
         request = self.context.get("request")
-        # if "user" not in attrs:
-        #     if request and request.user and request.user.is_authenticated:
-        #         attrs["user"] = request.user
-        #     else:
-        #         raise serializers.ValidationError(_("인증이 필요합니다!"))
+        
         if not request or not request.user.is_authenticated:
             raise serializers.ValidationError(_("인증이 필요합니다!"))
 
