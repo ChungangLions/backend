@@ -115,18 +115,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # }
 
 # 원격 연결용
-# DB_PW = get_secret("DB_PW")
-# RDS_HOST = get_secret("RDS_HOST")
-# DATABASES = {
-# 	'default': {
-# 		'ENGINE': 'django.db.backends.mysql',
-# 		'NAME': "chunganglions",
-# 		'USER': "admin", 
-# 		'PASSWORD': DB_PW, 
-# 		'HOST': RDS_HOST,
-# 		'PORT': '3306', 
-# 	}
-# }
+DB_PW = get_secret("DB_PW")
+RDS_HOST = get_secret("RDS_HOST")
+DATABASES = {
+	'default': {
+		'ENGINE': 'django.db.backends.mysql',
+		'NAME': "chunganglions",
+		'USER': "admin", 
+		'PASSWORD': DB_PW, 
+		'HOST': RDS_HOST,
+		'PORT': '3306', 
+	}
+}
 
 
 # Password validation
