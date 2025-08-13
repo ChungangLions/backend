@@ -218,3 +218,16 @@ SIMPLE_JWT = {
 }
 
 
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,  # Django 세션 로그인 버튼 숨김
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {             # Swagger의 Authorize 버튼에 표시될 스킴
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "예) Bearer <access_token>",
+        }
+    },
+    # 선택: Try it out 시 content-type 기본값을 json으로
+    "DEFAULT_MODEL_RENDERING": "example",
+}

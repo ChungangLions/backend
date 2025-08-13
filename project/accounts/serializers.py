@@ -204,6 +204,8 @@ class LikeWriteSerializer(serializers.ModelSerializer):
 
         if user.user_role == target.user_role:
             raise serializers.ValidationError(_("같은 역할의 사용자를 찜할 수 없습니다!"))
+        
+        attrs["user"] = user  # 주입
 
         return attrs
 
