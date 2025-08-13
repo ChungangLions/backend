@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
-from .models import User, Like
+from .models import User, Like, Recommendation
 from django.contrib.auth import get_user_model, password_validation
 
 # 사용자 정의 토큰 발급 시리얼라이저
@@ -137,9 +137,17 @@ class UserSerializer(serializers.ModelSerializer):
     likes_given_count = serializers.SerializerMethodField()
     likes_received_count = serializers.SerializerMethodField()
 
+    # 추천 카운트
+    recommendations_given_count = serializers.SerializerMethodField()
+    recommendations_received_count = serializers.SerializerMethodField()
+
     # N:N 읽기 (중첩/경량 표현) — write는 LikeSerializer로만 허용
     liked_targets = MiniUserSerializer(many=True, read_only=True)
     liked_by = MiniUserSerializer(many=True, read_only=True)
+
+    # 추천 N:N 읽기 (User.recommended_targets / .recommended_by)
+    recommended_targets = MiniUserSerializer(many=True, read_only=True)
+    recommended_by = MiniUserSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
@@ -147,8 +155,12 @@ class UserSerializer(serializers.ModelSerializer):
             "id", "username", "email", "user_role",
             "is_owner", "is_student",
             "created_at", "modified_at",
+            # like
             "likes_given_count", "likes_received_count",
             "liked_targets", "liked_by",
+            # recommendation
+            "recommendations_given_count", "recommendations_received_count",
+            "recommended_targets", "recommended_by",
         )
         read_only_fields = ("created_at", "modified_at")
 
@@ -157,6 +169,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_likes_received_count(self, obj):
         return obj.likes_received.count()
+    
+    # 추천 카운트 구현 (through FK의 related_name 활용)
+    def get_recommendations_given_count(self, obj):
+        # obj.recommendations_given -> Recommendation(from_user=obj)
+        return obj.recommendations_given.count()
+
+    def get_recommendations_received_count(self, obj):
+        # obj.recommendations_received -> Recommendation(to_user=obj)
+        return obj.recommendations_received.count()
 
 
 # --- 찜(Like) 읽기용 ---
@@ -175,10 +196,7 @@ class LikeWriteSerializer(serializers.ModelSerializer):
     - 기본 패턴: 요청 보낸 주체가 user (request.user)
     - payload에는 보통 target만 넘기도록 설계 (user는 서버에서 주입)
     """
-    # user = serializers.PrimaryKeyRelatedField(
-    #     queryset=User.objects.all(), required=False, write_only=True
-    # )
-    # target = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
     target = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     class Meta:
         model = Like
@@ -188,11 +206,7 @@ class LikeWriteSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         # user 주입(미제공 시 request.user 사용)
         request = self.context.get("request")
-        # if "user" not in attrs:
-        #     if request and request.user and request.user.is_authenticated:
-        #         attrs["user"] = request.user
-        #     else:
-        #         raise serializers.ValidationError(_("인증이 필요합니다!"))
+        
         if not request or not request.user.is_authenticated:
             raise serializers.ValidationError(_("인증이 필요합니다!"))
 
@@ -222,12 +236,6 @@ class LikeWriteSerializer(serializers.ModelSerializer):
         except IntegrityError:
             # 경합 상황 대비
             raise serializers.ValidationError(_("이미 찜한 사용자입니다!"))
-        # try:
-        #     # UniqueConstraint(uq_like_user_target) 위배시 IntegrityError
-        #     return Like.objects.create(**validated_data)
-        # except IntegrityError:
-        #     # 이미 존재하는 경우 친절한 메시지로 변환
-        #     raise serializers.ValidationError(_("이미 찜한 사용자입니다!"))
 
 
 # --- 한 줄짜리 엔드포인트용 시리얼라이저 (타겟만 받기) ---
@@ -258,3 +266,84 @@ class LikeToggleSerializer(serializers.Serializer):
         except Like.DoesNotExist:
             # 없으면 생성해서 반환
             return Like.objects.create(user=user, target=target)
+
+
+class RecommendationReadSerializer(serializers.ModelSerializer):
+    from_user = MiniUserSerializer(read_only=True)
+    to_user = MiniUserSerializer(read_only=True)
+
+    class Meta:
+        model = Recommendation
+        fields = ("id", "from_user", "to_user", "created_at")
+
+
+# 추천 생성 용 시리얼라이저
+class RecommendationWriteSerializer(serializers.ModelSerializer):
+    # 클라이언트는 대상 사장님만 보냅니다.
+    to_user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    class Meta:
+        model = Recommendation
+        fields = ("id", "to_user", "created_at")
+        read_only_fields = ("id", "created_at")
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError(_("인증이 필요합니다!"))
+
+        from_user = request.user
+        to_user = attrs["to_user"]
+
+        if from_user == to_user:
+            raise serializers.ValidationError(_("자기 자신을 추천할 수 없습니다!"))
+        if from_user.user_role != User.Role.STUDENT:
+            raise serializers.ValidationError(_("추천은 '학생'만 할 수 있습니다!"))
+        if to_user.user_role != User.Role.OWNER:
+            raise serializers.ValidationError(_("추천 대상은 '사장님'만 가능합니다!"))
+
+        # 생성 시 사용하도록 주입
+        attrs["from_user"] = from_user
+        return attrs
+
+    def create(self, validated_data):
+        from_user = validated_data["from_user"]
+        to_user = validated_data["to_user"]
+        try:
+            with transaction.atomic():
+                obj, created = Recommendation.objects.get_or_create(
+                    from_user=from_user, to_user=to_user
+                )
+                if not created:
+                    # 동시성/중복 요청에 대해 사용자 친화 메시지
+                    raise serializers.ValidationError(_("이미 추천했습니다!"))
+                return obj
+        except IntegrityError:
+            # 유니크 제약 위반 경합 대비
+            raise serializers.ValidationError(_("이미 추천했습니다!"))
+        
+# 추천 토글 용 시리얼라이저: 있으면 삭제, 없으면 생성
+class RecommendationToggleSerializer(serializers.Serializer):
+    to_user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    def save(self, **kwargs):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError(_("인증이 필요합니다."))
+
+        from_user = request.user
+        to_user = self.validated_data["to_user"]
+
+        if from_user == to_user:
+            raise serializers.ValidationError(_("자기 자신을 추천할 수 없습니다."))
+        if from_user.user_role != User.Role.STUDENT:
+            raise serializers.ValidationError(_("추천은 '학생'만 할 수 있습니다."))
+        if to_user.user_role != User.Role.OWNER:
+            raise serializers.ValidationError(_("추천 대상은 '사장님'만 가능합니다."))
+
+        try:
+            existing = Recommendation.objects.get(from_user=from_user, to_user=to_user)
+            existing.delete()
+            return None  # 언라이크와 동일하게 None이면 해제
+        except Recommendation.DoesNotExist:
+            return Recommendation.objects.create(from_user=from_user, to_user=to_user)
