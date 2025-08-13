@@ -41,7 +41,7 @@ SECRET_KEY = get_secret("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -120,7 +120,7 @@ RDS_HOST = get_secret("RDS_HOST")
 DATABASES = {
 	'default': {
 		'ENGINE': 'django.db.backends.mysql',
-		'NAME': "chunganglions",
+		'NAME': "ChungangLions",
 		'USER': "admin", 
 		'PASSWORD': DB_PW, 
 		'HOST': RDS_HOST,
