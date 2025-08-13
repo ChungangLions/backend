@@ -115,13 +115,14 @@ DATABASES = {
 '''
 # 원격 연결용
 DB_PW = get_secret("DB_PW")
+RDS_HOST = get_secret("RDS_HOST")
 DATABASES = {
 	'default': {
 		'ENGINE': 'django.db.backends.mysql',
 		'NAME': "chunganglions",
 		'USER': "admin", 
 		'PASSWORD': DB_PW, 
-		'HOST': "chunganglions.cz6uwu2a4un5.ap-northeast-2.rds.amazonaws.com",
+		'HOST': RDS_HOST,
 		'PORT': '3306', 
 	}
 }
