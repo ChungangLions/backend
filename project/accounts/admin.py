@@ -37,6 +37,6 @@ class LikeAdmin(admin.ModelAdmin):
 
 @admin.register(Recommendation)
 class RecommendationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'target', 'created_at')
-    search_fields = ('user__username', 'user__email', 'target__username', 'target__email')
+    list_display = ('id', 'from_user', 'to_user', 'created_at')
+    search_fields = ('from_user__username', 'from_user__email', 'to_user__username', 'to_user__email')
     list_filter = ('created_at',)
