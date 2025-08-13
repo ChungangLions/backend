@@ -1,11 +1,15 @@
 # accounts/views.py
 from django.db.models import Count, Prefetch
-from rest_framework import viewsets, mixins, status, permissions, filters
+from rest_framework import viewsets, mixins, status, permissions, filters, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
+# 토큰 발급용
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import EmailRoleAwareTokenObtainPairSerializer, RegisterSerializer
 
 from .models import User, Like
 from .serializers import (
@@ -16,7 +20,17 @@ from .serializers import (
     LikeToggleSerializer,
 )
 
-
+# 회원가입용 뷰셋
+class RegisterView(generics.CreateAPIView):
+    """
+    회원가입: email, username(선택), password, password2, user_role(선택)
+    성공 시 user + access/refresh 토큰 반환
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = RegisterSerializer
+# 로그인을 위한 뷰셋
+class LoginView(TokenObtainPairView):
+    serializer_class = EmailRoleAwareTokenObtainPairSerializer
 class IsAuthenticatedOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
@@ -102,14 +116,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         operation_id="unlikeUser",
     )
     # tests.py를 이용한 디버그, 액션 단위의 인증 요청
-    @action(detail=True, methods=['post', 'delete'], url_path='like', permission_classes=[])
+    @action(detail=True, methods=['post', 'delete'], url_path='like', permission_classes=[permissions.IsAuthenticated]) # 인증 강제
     def like(self, request, pk=None):
         if not request.user.is_authenticated:
             return Response({'detail': '인증 필요'}, status=status.HTTP_401_UNAUTHORIZED)
 
         target = self.get_object()
         if request.method.lower() == 'post':
-            ser = LikeWriteSerializer(data={'user': request.user.id, 'target': target.id}, context={'request': request})
+            ser = LikeWriteSerializer(data={'target': target.id}, context={'request': request})
             ser.is_valid(raise_exception=True)
             like = ser.save()
             return Response({'status': 'liked', 'like_id': like.id}, status=status.HTTP_201_CREATED)
@@ -142,7 +156,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         tags=["Likes"],
         operation_id="toggleLikeUser",
     )
-    @action(detail=True, methods=['post'], url_path='like-toggle', permission_classes=[])
+    @action(detail=True, methods=['post'], url_path='like-toggle', permission_classes=[permissions.IsAuthenticated])
     def like_toggle(self, request, pk=None):
         if not request.user.is_authenticated:
             return Response({'detail': '인증 필요'}, status=status.HTTP_401_UNAUTHORIZED)

@@ -65,6 +65,7 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "rest_framework",
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'storages',
     'drf_yasg',
 ]
@@ -105,14 +106,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-'''
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-'''
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 # 원격 연결용
 DB_PW = get_secret("DB_PW")
 RDS_HOST = get_secret("RDS_HOST")
@@ -197,5 +198,21 @@ MEDIA_ROOT = ''
 
 # 기본 업체 대표 사진
 DEFAULT_OWNER_PHOTO_PATH = "defaults/owner_profile.png"
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 
