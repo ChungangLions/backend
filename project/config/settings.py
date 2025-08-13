@@ -106,8 +106,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-'''
-<<<<<<< HEAD
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -115,7 +114,6 @@ DATABASES = {
     }
 }
 '''
-
 # 원격 연결용
 DB_PW = get_secret("DB_PW")
 RDS_HOST = get_secret("RDS_HOST")
@@ -129,7 +127,7 @@ DATABASES = {
 		'PORT': '3306', 
 	}
 }
-
+'''
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
