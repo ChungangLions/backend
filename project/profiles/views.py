@@ -26,12 +26,18 @@ from django.conf import settings
 MAX_OWNER_PHOTOS = 10
 MAX_OWNER_MENUS = 8
 
-# ------ 사장님 프로필 관련 Views ------
-class OwnerProfileListCreateView(APIView):
-    """사장님 프로필 목록 조회, 생성"""
+class BaseProfileMixin:
+    """프로필 관련 뷰의 공통 기능"""
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
+
+class BaseDetailMixin(BaseProfileMixin):
+    """상세 뷰의 공통 기능"""
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]  # 추가 권한
+
+# ------ 사장님 프로필 관련 Views ------
+class OwnerProfileListCreateView(BaseProfileMixin, APIView):
+    """사장님 프로필 목록 조회, 생성"""
     @swagger_auto_schema(
         operation_summary="사장님 프로필 목록 조회",
         operation_description="모든 사장님 프로필을 조회합니다.",
@@ -121,11 +127,8 @@ class OwnerProfileListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class OwnerProfileDetailView(APIView):
+class OwnerProfileDetailView(BaseDetailMixin, APIView):
     """사장님 프로필 상세 조회, 수정, 삭제"""
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
     def get_object(self, pk):
         return get_object_or_404(
             OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus'),
@@ -190,11 +193,8 @@ class OwnerProfileDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class OwnerPhotoView(APIView):
-    """사장님 프로필 사진 관리"""
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
-    
+class OwnerPhotoCreateView(BaseDetailMixin, APIView):
+    """사장님 프로필 사진 관리"""  
     @swagger_auto_schema(
         operation_summary="사장님 프로필 사진 추가",
         operation_description=( "지정한 프로필 ID(`profile_id`)에 사진을 추가합니다."),
@@ -230,7 +230,8 @@ class OwnerPhotoView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+class OwnerPhotoDeleteView(BaseDetailMixin, APIView):
     @swagger_auto_schema(
         operation_summary="사장님 프로필 사진 삭제",
         operation_description=(
@@ -258,11 +259,8 @@ class OwnerPhotoView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class MenuView(APIView):
-    """메뉴 관리"""
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
+class MenuCreateView(BaseProfileMixin, APIView):
+    """메뉴 목록 조회/ 메뉴 생성"""
     @swagger_auto_schema(
         operation_summary="특정 프로필의 대표메뉴 목록 조회",
         operation_description="프로필 ID(`profile_id`)에 해당하는 모든 대표메뉴를 조회합니다.",
@@ -314,6 +312,8 @@ class MenuView(APIView):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class MenuDetailView(BaseDetailMixin, APIView):
+    """메뉴 수정/삭제"""  
     @swagger_auto_schema(
         operation_summary="대표메뉴 수정",
         operation_description="특정 대표메뉴(`menu_id`)를 수정합니다.",
@@ -370,11 +370,8 @@ class MenuView(APIView):
 
 
 # ------ 학생단체 프로필 관련 Views ------
-class StudentGroupProfileListCreateView(APIView):
+class StudentGroupProfileListCreateView(BaseProfileMixin, APIView):
     """학생단체 프로필 목록 조회 및 생성"""
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
     @swagger_auto_schema(
         operation_summary="학생단체 프로필 목록 조회",
         operation_description="모든 학생단체 프로필을 조회합니다.",
@@ -422,11 +419,8 @@ class StudentGroupProfileListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class StudentGroupProfileDetailView(APIView):
+class StudentGroupProfileDetailView(BaseDetailMixin, APIView):
     """학생단체 프로필 상세 조회, 수정, 삭제"""
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
     def get_object(self, pk):
         return get_object_or_404(
             StudentGroupProfile.objects.select_related('user').prefetch_related('photos'),
@@ -491,11 +485,8 @@ class StudentGroupProfileDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class StudentPhotoView(APIView):
-    """학생단체 프로필 사진 관리"""
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
-    
+class StudentPhotoCreateView(BaseDetailMixin, APIView):
+    """학생단체 프로필 사진 관리""" 
     @swagger_auto_schema(
         operation_summary="학생단체 사진 추가",
         operation_description="본인의 프로필(`profile_id`)에 새로운 사진를 추가합니다.",
@@ -524,7 +515,8 @@ class StudentPhotoView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+class StudentPhotoDeleteView(BaseDetailMixin, APIView):
     @swagger_auto_schema(
         operation_summary="학생단체 사진 삭제",
         operation_description="특정 사진(`photo_id`)를 삭제합니다",
@@ -549,11 +541,8 @@ class StudentPhotoView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 # ------ 학생 프로필 관련 Views ------
-class StudentProfileListCreateView(APIView):
-    """학생 프로필 목록 조회 및 생성"""
-    permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
+class StudentProfileListCreateView(BaseDetailMixin, APIView):
+    """학생 프로필 목록 조회 및 생성""" 
     @swagger_auto_schema(
         operation_summary="학생 프로필 목록 조회",
         operation_description="모든 학생 프로필을 조회합니다.",
@@ -586,11 +575,8 @@ class StudentProfileListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class StudentProfileDetailView(APIView):
-    """학생 프로필 상세 조회, 수정, 삭제"""
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-    
+class StudentProfileDetailView(BaseDetailMixin, APIView):
+    """학생 프로필 상세 조회, 수정, 삭제"""   
     def get_object(self, pk):
         return get_object_or_404(
             StudentProfile.objects.select_related('user'),

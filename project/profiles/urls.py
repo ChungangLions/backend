@@ -3,13 +3,13 @@ from .views import (
     # 사장님 프로필 관련
     OwnerProfileListCreateView,
     OwnerProfileDetailView,
-    OwnerPhotoView,
-    MenuView,
+    OwnerPhotoCreateView, OwnerPhotoDeleteView,
+    MenuCreateView, MenuDetailView,
     
     # 학생단체 프로필 관련
     StudentGroupProfileListCreateView,
     StudentGroupProfileDetailView,
-    StudentPhotoView,
+    StudentPhotoCreateView, StudentPhotoDeleteView,
     
     # 학생단체 프로필 관련
     StudentProfileListCreateView,
@@ -28,12 +28,12 @@ urlpatterns = [
     path('owners/<int:pk>/', OwnerProfileDetailView.as_view(), name='owner-detail'),
     
     # 프로필 사진 관리
-    path('owners/<int:profile_id>/photos/', OwnerPhotoView.as_view(), name='owner-photo-list'),
-    path('owners/<int:profile_id>/photos/<int:photo_id>/', OwnerPhotoView.as_view(), name='owner-photo-detail'),
+    path('owners/<int:profile_id>/photos/', OwnerPhotoCreateView.as_view(), name='owner-photo-list'),
+    path('owners/<int:profile_id>/photos/<int:photo_id>/', OwnerPhotoDeleteView.as_view(), name='owner-photo-detail'),
     
     # 메뉴 관리
-    path('owners/<int:profile_id>/menus/', MenuView.as_view(), name='menu-list'),
-    path('owners/<int:profile_id>/menus/<int:menu_id>/', MenuView.as_view(), name='menu-detail'),
+    path('owners/<int:profile_id>/menus/', MenuCreateView.as_view(), name='menu-list'),
+    path('owners/<int:profile_id>/menus/<int:menu_id>/', MenuDetailView.as_view(), name='menu-detail'),
     
     
     # ------ 학생단체 프로필 관련 URLs ------
@@ -45,8 +45,8 @@ urlpatterns = [
     path('student-groups/<int:pk>/', StudentGroupProfileDetailView.as_view(), name='student-group-detail'),
     
     # 프로필 사진 관리
-    path('student-groups/<int:profile_id>/photos/', StudentPhotoView.as_view(), name='student-group-photo-list'),
-    path('student-groups/<int:profile_id>/photos/<int:photo_id>/', StudentPhotoView.as_view(), name='student-group-photo-detail'),
+    path('student-groups/<int:profile_id>/photos/', StudentPhotoCreateView.as_view(), name='student-group-photo-list'),
+    path('student-groups/<int:profile_id>/photos/<int:photo_id>/', StudentPhotoDeleteView.as_view(), name='student-group-photo-detail'),
 
     # ------ 학생 프로필 관련 URLs ------
     
