@@ -11,13 +11,16 @@ from drf_yasg import openapi
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import EmailRoleAwareTokenObtainPairSerializer, RegisterSerializer
 
-from .models import User, Like
+from .models import User, Like, Recommendation
 from .serializers import (
     UserSerializer,
     MiniUserSerializer,
     LikeReadSerializer,
     LikeWriteSerializer,
     LikeToggleSerializer,
+    RecommendationReadSerializer,
+    RecommendationWriteSerializer,
+    RecommendationToggleSerializer,
 )
 
 # 회원가입용 뷰셋
@@ -50,10 +53,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         .prefetch_related(
             Prefetch('liked_targets', queryset=User.objects.only('id', 'username', 'user_role')),
             Prefetch('liked_by', queryset=User.objects.only('id', 'username', 'user_role')),
+            Prefetch('recommended_targets', queryset=User.objects.only('id', 'username', 'user_role')),
+            Prefetch('recommended_by', queryset=User.objects.only('id', 'username', 'user_role')),
         )
         .annotate(
             likes_given_count=Count('likes_given', distinct=True),
             likes_received_count=Count('likes_received', distinct=True),
+            recommendations_given_count=Count('recommendations_given', distinct=True),
+            recommendations_received_count=Count('recommendations_received', distinct=True),
         )
     )
     serializer_class = UserSerializer
@@ -171,6 +178,61 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         if obj is None:
             return Response({'status': 'unliked'}, status=status.HTTP_200_OK)
         return Response({'status': 'liked', 'like_id': obj.id}, status=status.HTTP_201_CREATED)
+    
+    # ---------------------- 추천 생성/삭제 ----------------------
+    @swagger_auto_schema(
+        method='post',
+        security=[{"Bearer": []}],
+        operation_summary="특정 유저 추천 생성 (학생 → 사장님)",
+        operation_description="학생만 추천 가능, 대상은 사장님만 가능.",
+        tags=["Recommendations"],
+        operation_id="recommendUser",
+    )
+    @swagger_auto_schema(
+        method='delete',
+        security=[{"Bearer": []}],
+        operation_summary="특정 유저 추천 삭제",
+        operation_description="멱등(이미 없어도 204).",
+        tags=["Recommendations"],
+        operation_id="unrecommendUser",
+    )
+    @action(detail=True, methods=['post', 'delete'], url_path='recommend', permission_classes=[permissions.IsAuthenticated])
+    def recommend(self, request, pk=None):
+        if not request.user.is_authenticated:
+            return Response({'detail': '인증 필요'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        target = self.get_object()
+        if request.method.lower() == 'post':
+            ser = RecommendationWriteSerializer(data={'to_user': target.id}, context={'request': request})
+            ser.is_valid(raise_exception=True)
+            rec = ser.save()
+            return Response({'status': 'recommended', 'recommendation_id': rec.id}, status=status.HTTP_201_CREATED)
+
+        obj = Recommendation.objects.filter(from_user=request.user, to_user=target).first()
+        if obj:
+            obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # ---------------------- 추천 토글 ----------------------
+    @swagger_auto_schema(
+        method='post',
+        security=[{"Bearer": []}],
+        operation_summary="특정 유저 추천 토글 (있으면 삭제, 없으면 생성)",
+        tags=["Recommendations"],
+        operation_id="toggleRecommendUser",
+    )
+    @action(detail=True, methods=['post'], url_path='recommend-toggle', permission_classes=[permissions.IsAuthenticated])
+    def recommend_toggle(self, request, pk=None):
+        if not request.user.is_authenticated:
+            return Response({'detail': '인증 필요'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        target = self.get_object()
+        ser = RecommendationToggleSerializer(data={'to_user': target.id}, context={'request': request})
+        ser.is_valid(raise_exception=True)
+        obj = ser.save()
+        if obj is None:
+            return Response({'status': 'unrecommended'}, status=status.HTTP_200_OK)
+        return Response({'status': 'recommended', 'recommendation_id': obj.id}, status=status.HTTP_201_CREATED)
 
 
 class LikeViewSet(mixins.CreateModelMixin,
@@ -235,4 +297,78 @@ class LikeViewSet(mixins.CreateModelMixin,
 
     def perform_create(self, serializer):
         serializer.context.update({'request': self.request})
+        serializer.save()
+
+
+class RecommendationViewSet(mixins.CreateModelMixin,
+                            mixins.DestroyModelMixin,
+                            mixins.ListModelMixin,
+                            viewsets.GenericViewSet):
+    """
+    추천 전용 뷰셋
+    - GET /recommendations/            : 내가 한 추천 목록
+      GET /recommendations/?mode=received : 내가 받은 추천 목록
+    - POST /recommendations/           : 생성 (payload: {"to_user": <owner_id>})
+    - DELETE /recommendations/{id}/    : 삭제
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        mode = self.request.query_params.get('mode', 'given')
+        base = Recommendation.objects.select_related('from_user', 'to_user')
+        if mode == 'received':
+            return base.filter(to_user=user).order_by('-created_at')
+        return base.filter(from_user=user).order_by('-created_at')
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return RecommendationReadSerializer
+        return RecommendationWriteSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["request"] = self.request
+        return ctx
+
+    @swagger_auto_schema(
+        operation_summary="추천 목록 조회",
+        operation_description="기본은 내가 한 추천 목록. `?mode=received`로 내가 받은 추천 목록 조회.",
+        manual_parameters=[openapi.Parameter('mode', openapi.IN_QUERY, type=openapi.TYPE_STRING,
+                              enum=['given', 'received'], description="조회 모드")],
+        responses={200: RecommendationReadSerializer(many=True)},
+        tags=["Recommendations"],
+        operation_id="listRecommendations",
+        security=[{"Bearer": []}],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="추천 생성 (학생 → 사장님)",
+        request_body=RecommendationWriteSerializer,
+        responses={201: RecommendationReadSerializer, 400: "유효성 오류"},
+        tags=["Recommendations"],
+        operation_id="createRecommendation",
+        security=[{"Bearer": []}],
+    )
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context=self.get_serializer_context())
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(RecommendationReadSerializer(serializer.instance).data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @swagger_auto_schema(
+        operation_summary="추천 삭제",
+        operation_description="리소스형 삭제: /recommendations/{id}/",
+        responses={204: "No Content"},
+        tags=["Recommendations"],
+        operation_id="deleteRecommendation",
+        security=[{"Bearer": []}],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
         serializer.save()
