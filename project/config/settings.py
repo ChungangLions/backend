@@ -120,7 +120,7 @@ RDS_HOST = get_secret("RDS_HOST")
 DATABASES = {
 	'default': {
 		'ENGINE': 'django.db.backends.mysql',
-		'NAME': "chunganglions",
+		'NAME': "ChungangLions",
 		'USER': "admin", 
 		'PASSWORD': DB_PW, 
 		'HOST': RDS_HOST,
