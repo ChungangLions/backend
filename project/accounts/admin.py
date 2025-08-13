@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from .models import User, Like
+from .models import User, Like, Recommendation
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -31,6 +31,12 @@ class UserAdmin(DjangoUserAdmin):
     )
 @admin.register(Like)
 class LikeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'target', 'created_at')
+    search_fields = ('user__username', 'user__email', 'target__username', 'target__email')
+    list_filter = ('created_at',)
+
+@admin.register(Recommendation)
+class RecommendationAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'target', 'created_at')
     search_fields = ('user__username', 'user__email', 'target__username', 'target__email')
     list_filter = ('created_at',)
