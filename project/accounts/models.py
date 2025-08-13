@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, Group
 from django.db.models import Q, F
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 # 사용자 정의 유저 모델
 # - 역할: 사장님/학생단체를 구분 + (2025-08-10 추가): 학생 role도 추가
@@ -32,6 +33,16 @@ class User(AbstractUser):
         related_name='liked_by',
         blank=True,
         verbose_name='찜한 대상 목록'
+    )
+
+    recommended_targets = models.ManyToManyField(
+        'self',
+        through='Recommendation',
+        through_fields=('from_user', 'to_user'),
+        symmetrical=False,
+        related_name='recommended_by',
+        blank=True,
+        verbose_name='추천 대상(사장님)',
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일')
@@ -114,3 +125,61 @@ class Like(models.Model):
 
     def __str__(self):
         return f'{self.user} → {self.target}' 
+    
+
+# 추천관련 모델
+class Recommendation(models.Model):
+    """
+    추천 (학생 → 사장님)
+    - from_user: 추천한 주체 (학생만)
+    - to_user  : 추천을 받은 대상 (사장님만)
+    """
+    from_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='recommendations_given',
+        limit_choices_to={'user_role': User.Role.STUDENT},  # 폼/어드민에서 유효값 제한
+        verbose_name='추천한 학생'
+    )
+    to_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='recommendations_received',
+        limit_choices_to={'user_role': User.Role.OWNER},     # 폼/어드민에서 유효값 제한
+        verbose_name='추천 받은 사장님'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        constraints = [
+            # 1) 동일 학생이 동일 사장님을 중복 추천 금지
+            models.UniqueConstraint(fields=['from_user', 'to_user'], name='uq_recommend_from_to'),
+            # 2) 자기 자신 추천 금지
+            models.CheckConstraint(check=~Q(from_user=F('to_user')), name='ck_recommend_no_self'),
+        ]
+        indexes = [
+            models.Index(fields=['to_user']),                # 사장님별 추천 수/목록 조회 최적화
+            models.Index(fields=['from_user', 'to_user']),   # 존재 여부 검사, 토글 체크 최적화
+        ]
+        verbose_name = '추천'
+        verbose_name_plural = '추천들'
+
+    def clean(self):
+        """
+        애플리케이션 레벨 유효성 검증:
+        - 학생(STUDENT)만 추천 주체가 될 수 있음
+        - 사장님(OWNER)만 추천 대상이 될 수 있음
+        """
+        if self.from_user_id and self.to_user_id:
+            if self.from_user.user_role != User.Role.STUDENT:
+                raise ValidationError('추천은 "학생"만 할 수 있습니다.')
+            if self.to_user.user_role != User.Role.OWNER:
+                raise ValidationError('추천은 "사장님"에게만 가능합니다.')
+
+    def save(self, *args, **kwargs):
+        # DRF/ORM에서 full_clean()이 자동 호출되지 않으므로, 보수적으로 한 번 호출
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.from_user} → {self.to_user} (추천)'
