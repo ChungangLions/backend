@@ -65,6 +65,7 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "rest_framework",
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'storages',
     'drf_yasg',
 ]
@@ -197,6 +198,12 @@ MEDIA_ROOT = ''
 
 # 기본 업체 대표 사진
 DEFAULT_OWNER_PHOTO_PATH = "defaults/owner_profile.png"
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=7),
