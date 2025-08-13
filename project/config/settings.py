@@ -105,12 +105,25 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
+'''
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
+'''
+# 원격 연결용
+DB_PW = get_secret("DB_PW")
+DATABASES = {
+	'default': {
+		'ENGINE': 'django.db.backends.mysql',
+		'NAME': "chunganglions",
+		'USER': "admin", 
+		'PASSWORD': DB_PW, 
+		'HOST': "chunganglions.cz6uwu2a4un5.ap-northeast-2.rds.amazonaws.com",
+		'PORT': '3306', 
+	}
 }
 
 
@@ -162,11 +175,24 @@ AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY") # .csv 파일에 있
 AWS_REGION = 'ap-northeast-2'
 
 ###S3###
-AWS_STORAGE_BUCKET_NAME = 'likelion13th'
+AWS_STORAGE_BUCKET_NAME = 'chunganglions'
 AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME,AWS_REGION)
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
+
+# S3 파일 스토리지 설정
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.StaticS3Boto3Storage'
+
+# S3 미디어 파일 설정
+AWS_S3_FILE_OVERWRITE = False  # 같은 이름의 파일이 있을 때 덮어쓰지 않고 새로운 이름으로 저장
+AWS_DEFAULT_ACL = None  # ACL 설정 (None으로 설정하여 버킷의 기본 ACL 사용)
+AWS_QUERYSTRING_AUTH = False  # URL에 인증 쿼리 문자열 추가하지 않음
+
+# 미디어 파일 URL 설정
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+MEDIA_ROOT = ''
 
 # 기본 업체 대표 사진
 DEFAULT_OWNER_PHOTO_PATH = "defaults/owner_profile.png"
