@@ -80,6 +80,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @swagger_auto_schema(
         operation_summary="유저 상세 조회",
+        security=[{"Bearer": []}],
         responses={200: UserSerializer()},
         tags=["Users"],
         operation_id="retrieveUser",
@@ -90,6 +91,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     # --- 찜 생성/삭제(REST 정석) ---
     @swagger_auto_schema(
         method='post',
+        security=[{"Bearer": []}],
         operation_summary="특정 유저 찜 생성",
         operation_description="대상 유저를 찜합니다. 요청자는 인증 필요.",
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT),  # body 없이 호출
@@ -109,6 +111,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     )
     @swagger_auto_schema(
         method='delete',
+        security=[{"Bearer": []}],
         operation_summary="특정 유저 찜 삭제",
         operation_description="대상 유저에 대한 찜을 해제합니다. 멱등(이미 없어도 204).",
         responses={204: "No Content", 401: "인증 필요"},
