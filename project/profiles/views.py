@@ -458,6 +458,19 @@ class StudentGroupProfileDetailView(BaseDetailMixin, APIView):
         serializer = StudentGroupProfileCreateSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             profile = serializer.save()
+
+            # 사진 수정 로직
+            if 'photos' in request.FILES:
+                # 기존 사진 삭제
+                profile.photos.all().delete()
+                # 새 사진 저장
+                for idx, photo in enumerate(request.FILES.getlist('photos')):
+                    StudentPhoto.objects.create(
+                        student_group_profile=profile,
+                        image=photo,
+                        order=idx
+                    )
+
             updated_profile = StudentGroupProfile.objects.select_related('user').prefetch_related('photos').get(id=profile.id)
             return Response(
                 StudentGroupProfileSerializer(updated_profile).data, 
@@ -482,62 +495,6 @@ class StudentGroupProfileDetailView(BaseDetailMixin, APIView):
         self.check_object_permissions(request, profile)
         
         profile.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class StudentPhotoCreateView(BaseDetailMixin, APIView):
-    """학생단체 프로필 사진 관리""" 
-    @swagger_auto_schema(
-        operation_summary="학생단체 사진 추가",
-        operation_description="본인의 프로필(`profile_id`)에 새로운 사진를 추가합니다.",
-        manual_parameters=[
-            openapi.Parameter('profile_id', openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER, required=True)
-        ],
-        request_body=StudentPhotoSerializer,
-        responses={
-            201: StudentPhotoSerializer,
-            400: "요청 데이터 오류",
-            403: "권한 없음",
-            404: "프로필 없음"
-        }
-    )
-    def post(self, request, profile_id):
-        profile = get_object_or_404(StudentGroupProfile, pk=profile_id)
-        
-        self.check_object_permissions(request, profile)
-        
-        serializer = StudentPhotoSerializer(data=request.data)
-        if serializer.is_valid():
-            photo = serializer.save(student_group_profile=profile)
-            return Response(
-                StudentPhotoSerializer(photo).data, 
-                status=status.HTTP_201_CREATED
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class StudentPhotoDeleteView(BaseDetailMixin, APIView):
-    @swagger_auto_schema(
-        operation_summary="학생단체 사진 삭제",
-        operation_description="특정 사진(`photo_id`)를 삭제합니다",
-        manual_parameters=[
-            openapi.Parameter('profile_id', openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter('photo_id', openapi.IN_PATH,
-            description="사진 ID", type=openapi.TYPE_INTEGER, required=True)
-        ],
-        responses={
-            204: openapi.Response(description="삭제 성공"),
-            403: "권한 없음",
-            404: "사진 없음"
-        }
-    )
-    def delete(self, request, profile_id, photo_id):
-        photo = get_object_or_404(StudentPhoto, pk=photo_id, student_group_profile_id=profile_id)
-        
-        self.check_object_permissions(request, photo)
-        
-        photo.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 # ------ 학생 프로필 관련 Views ------

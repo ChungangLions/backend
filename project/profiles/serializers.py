@@ -164,26 +164,15 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
-        photos_data = validated_data.pop('photos_data', [])
-        
         student_profile = StudentGroupProfile.objects.create(**validated_data)
-        
-        for photo_data in photos_data:
-            StudentPhoto.objects.create(student_group_profile=student_profile, **photo_data)
-        
+
         return student_profile
     
     def update(self, instance, validated_data):
-        photos_data = validated_data.pop('photos_data', [])
-        
+       
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        
-        if photos_data:
-            instance.photos.all().delete()
-            for photo_data in photos_data:
-                StudentPhoto.objects.create(student_group_profile=instance, **photo_data)
         
         return instance
 
