@@ -20,7 +20,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # 앱 라우트(버전/도메인별로 래핑)
-    #path("api/profiles/", include("profiles.urls")),
+    path("api/profiles/", include("profiles.urls")),
     path('api/accounts/', include('accounts.urls')),
 
     # JWT 인증 URL (전역)

@@ -115,7 +115,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 #     }
 # }
 
-# 원격 연결용
+#원격 연결용
 DB_PW = get_secret("DB_PW")
 RDS_HOST = get_secret("RDS_HOST")
 DATABASES = {
@@ -180,9 +180,7 @@ AWS_REGION = 'ap-northeast-2'
 ###S3###
 AWS_STORAGE_BUCKET_NAME = 'chunganglions'
 AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME,AWS_REGION)
-AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',
-}
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400',}
 
 # S3 파일 스토리지 설정
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

@@ -20,12 +20,6 @@ class MenuSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "price", "image", "order"]
         read_only_fields = ["id"]
 
-class StudentPhotoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = StudentPhoto
-        fields = ["id", "image", "order", "uploaded_at"]
-        read_only_fields = ["id", "uploaded_at"]
-
 # --- 업체 프로필 조회용 --- 
 class OwnerProfileSerializer(serializers.ModelSerializer):
 
