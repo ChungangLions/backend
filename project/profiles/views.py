@@ -8,7 +8,6 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-import json
 from .permissions import IsOwnerOrReadOnly
 from .models import (
     OwnerProfile, OwnerPhoto, Menu, 
@@ -34,7 +33,7 @@ class BaseProfileMixin:
 
 class BaseDetailMixin(BaseProfileMixin):
     """상세 뷰의 공통 기능"""
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]  # 추가 권한
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
 
 # ------ 사장님 프로필 관련 Views ------
 class OwnerProfileListCreateView(BaseProfileMixin, APIView):
@@ -66,10 +65,6 @@ class OwnerProfileListCreateView(BaseProfileMixin, APIView):
         responses={201: OwnerProfileCreateSerializer, 400: "잘못된 요청"}
     )
     def post(self, request):
-        # 디버깅 추가
-        print("request.data:", request.data)
-        print("menus raw:", request.data.get('menus'))
-        print("type of menus:", type(request.data.get('menus')))
         serializer = OwnerProfileCreateSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():
@@ -94,70 +89,26 @@ class OwnerProfileListCreateView(BaseProfileMixin, APIView):
                         )
                 
                 # 메뉴 이미지 처리
-                # 메뉴 처리
-                menus_raw = request.data.get('menus')
-                if menus_raw:
-                    try:
-                        menus_data = json.loads(menus_raw)
-                        print("Parsed menus_data:", menus_data)
-                        print("Type of parsed data:", type(menus_data))
-                        
-                        if menus_data:
-                            existing = profile.menus.count()
-                            print(f"Existing menus count: {existing}")
-                            print(f"MAX_OWNER_MENUS: {MAX_OWNER_MENUS}")
-                            
-                            if existing + len(menus_data) > MAX_OWNER_MENUS:
-                                print("Too many menus!")
-                                return Response(
-                                    {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
-                                    status=status.HTTP_400_BAD_REQUEST,
-                                )
-                            
-                            for idx, menu_data in enumerate(menus_data):
-                                print(f"Processing menu {idx}: {menu_data}")
-                                try:
-                                    menu = Menu.objects.create(
-                                        owner_profile=profile,
-                                        name=menu_data.get('name'),
-                                        price=menu_data.get('price'),
-                                        image=None,  # 일단 이미지 없이
-                                        order=existing + idx
-                                    )
-                                    print(f"Menu created: {menu.id}")
-                                except Exception as e:
-                                    print(f"Error creating menu: {e}")
-                                    raise e
-                                    
-                    except json.JSONDecodeError as e:
-                        print(f"JSON decode error: {e}")
+                menu_images = request.FILES.getlist('menu_images')
+                menus_data = request.data.get('menus', [])
+                
+                if menus_data:
+                    existing = profile.menus.count()
+                    if existing + len(menus_data) > MAX_OWNER_MENUS:
                         return Response(
-                            {"detail": f"메뉴 데이터 JSON 형식 오류: {str(e)}"},
+                            {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
-                    except Exception as e:
-                        print(f"Unexpected error in menu processing: {e}")
-                        raise e
-                # menu_images = request.FILES.getlist('menu_images')
-                # menus_data = request.data.get('menus', [])
-                
-                # if menus_data:
-                #     existing = profile.menus.count()
-                #     if existing + len(menus_data) > MAX_OWNER_MENUS:
-                #         return Response(
-                #             {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
-                #             status=status.HTTP_400_BAD_REQUEST,
-                #         )
-                #     start_order = existing
-                #     for idx, menu_data in enumerate(menus_data, start=start_order):
-                #         menu_image = menu_images[idx - start_order] if (idx - start_order) < len(menu_images) else None
-                #         Menu.objects.create(
-                #             owner_profile=profile,
-                #             name=menu_data.get('name'),
-                #             price=menu_data.get('price'),
-                #             image=menu_image,
-                #             order=idx
-                #         )
+                    start_order = existing
+                    for idx, menu_data in enumerate(menus_data, start=start_order):
+                        menu_image = menu_images[idx - start_order] if (idx - start_order) < len(menu_images) else None
+                        Menu.objects.create(
+                            owner_profile=profile,
+                            name=menu_data.get('name'),
+                            price=menu_data.get('price'),
+                            image=menu_image,
+                            order=idx
+                        )
 
                 # ---- 기본 대표 사진 자동 생성 ----
                 if profile.photos.count() == 0:
@@ -614,11 +565,6 @@ class StudentProfileListCreateView(BaseDetailMixin, APIView):
         if serializer.is_valid():
     
             profile = serializer.save(user=request.user)
-
-            image_file = request.FILES.get('image')
-            if image_file:
-                profile.image = image_file
-                profile.save()
             
             # 생성된 프로필을 다시 조회하여 관련 데이터와 함께 반환
             created_profile = StudentProfile.objects.select_related('user').get(id=profile.id)
@@ -665,6 +611,12 @@ class StudentProfileDetailView(BaseDetailMixin, APIView):
         
         self.check_object_permissions(request, profile)
         
+        new_image = request.FILES.get('image')
+
+        if new_image:
+            if profile.image:
+                profile.image.delete(save=False)
+
         serializer = StudentProfileCreateSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             profile = serializer.save()

@@ -1,17 +1,17 @@
 from django.urls import path
 from .views import (
-    # »çÀå´Ô ÇÁ·ÎÇÊ °ü·Ã
+    # ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ê´€ë ¨
     OwnerProfileListCreateView,
     OwnerProfileDetailView,
     OwnerPhotoCreateView, OwnerPhotoDeleteView,
     MenuCreateView, MenuDetailView,
     
-    # ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ °ü·Ã
+    # í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ê´€ë ¨
     StudentGroupProfileListCreateView,
     StudentGroupProfileDetailView,
     StudentPhotoCreateView, StudentPhotoDeleteView,
     
-    # ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ °ü·Ã
+    # í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ê´€ë ¨
     StudentProfileListCreateView,
     StudentProfileDetailView,
 )
@@ -19,40 +19,40 @@ from .views import (
 app_name = 'profiles'
 
 urlpatterns = [
-    # ------ »çÀå´Ô ÇÁ·ÎÇÊ °ü·Ã URLs ------
+    # ------ ì‚¬ì¥ë‹˜ í”„ë¡œí•„ ê´€ë ¨ URLs ------
     
-    # ÇÁ·ÎÇÊ ¸ñ·Ï ¹× »ı¼º
+    # í”„ë¡œí•„ ëª©ë¡ ë° ìƒì„±
     path('owners/', OwnerProfileListCreateView.as_view(), name='owner-list'),
     
-    # ÇÁ·ÎÇÊ »ó¼¼ (Á¶È¸/¼öÁ¤/»èÁ¦)
+    # í”„ë¡œí•„ ìƒì„¸ (ì¡°íšŒ/ìˆ˜ì •/ì‚­ì œ)
     path('owners/<int:pk>/', OwnerProfileDetailView.as_view(), name='owner-detail'),
     
-    # ÇÁ·ÎÇÊ »çÁø °ü¸®
+    # í”„ë¡œí•„ ì‚¬ì§„ ê´€ë¦¬
     path('owners/<int:profile_id>/photos/', OwnerPhotoCreateView.as_view(), name='owner-photo-list'),
     path('owners/<int:profile_id>/photos/<int:photo_id>/', OwnerPhotoDeleteView.as_view(), name='owner-photo-detail'),
     
-    # ¸Ş´º °ü¸®
+    # ë©”ë‰´ ê´€ë¦¬
     path('owners/<int:profile_id>/menus/', MenuCreateView.as_view(), name='menu-list'),
     path('owners/<int:profile_id>/menus/<int:menu_id>/', MenuDetailView.as_view(), name='menu-detail'),
     
     
-    # ------ ÇĞ»ı´ÜÃ¼ ÇÁ·ÎÇÊ °ü·Ã URLs ------
+    # ------ í•™ìƒë‹¨ì²´ í”„ë¡œí•„ ê´€ë ¨ URLs ------
     
-    # ÇÁ·ÎÇÊ ¸ñ·Ï ¹× »ı¼º  
+    # í”„ë¡œí•„ ëª©ë¡ ë° ìƒì„±  
     path('student-groups/', StudentGroupProfileListCreateView.as_view(), name='student-group-list'),
     
-    # ÇÁ·ÎÇÊ »ó¼¼ (Á¶È¸/¼öÁ¤/»èÁ¦)
+    # í”„ë¡œí•„ ìƒì„¸ (ì¡°íšŒ/ìˆ˜ì •/ì‚­ì œ)
     path('student-groups/<int:pk>/', StudentGroupProfileDetailView.as_view(), name='student-group-detail'),
     
-    # ÇÁ·ÎÇÊ »çÁø °ü¸®
+    # í”„ë¡œí•„ ì‚¬ì§„ ê´€ë¦¬
     path('student-groups/<int:profile_id>/photos/', StudentPhotoCreateView.as_view(), name='student-group-photo-list'),
     path('student-groups/<int:profile_id>/photos/<int:photo_id>/', StudentPhotoDeleteView.as_view(), name='student-group-photo-detail'),
 
-    # ------ ÇĞ»ı ÇÁ·ÎÇÊ °ü·Ã URLs ------
+    # ------ í•™ìƒ í”„ë¡œí•„ ê´€ë ¨ URLs ------
     
-    # ÇÁ·ÎÇÊ ¸ñ·Ï ¹× »ı¼º  
+    # í”„ë¡œí•„ ëª©ë¡ ë° ìƒì„±  
     path('students/', StudentProfileListCreateView.as_view(), name='student-list'),
     
-    # ÇÁ·ÎÇÊ »ó¼¼ (Á¶È¸/¼öÁ¤/»èÁ¦)
+    # í”„ë¡œí•„ ìƒì„¸ (ì¡°íšŒ/ìˆ˜ì •/ì‚­ì œ)
     path('students/<int:pk>/', StudentProfileDetailView.as_view(), name='student-detail'),
 ]
