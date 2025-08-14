@@ -232,6 +232,16 @@ class StudentProfile(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='student_profile')
     
+    # 사진
+    image =  models.ImageField(
+        upload_to="student_profile/image/",
+        blank=True,
+        null=True
+    )
+
+    #이름
+    name = models.CharField(max_length = 10, blank=False, verbose_name="이름")
+
     # 학교
     university_name = models.CharField(
         max_length = 100, blank=True, null=True,
