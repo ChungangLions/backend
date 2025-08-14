@@ -195,7 +195,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = [
-            'id', 'user', 
+            'id', 'user', 'name',
             'university_name', 'image'
         ]
         read_only_fields = ['id', 'user']
@@ -206,7 +206,7 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
         fields = [
-            'university_name', 'image'
+            'image', 'name', 'university_name'
         ]
     
     def validate_image(self, value):
