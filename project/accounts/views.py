@@ -9,7 +9,7 @@ from drf_yasg import openapi
 
 # 토큰 발급용
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import EmailRoleAwareTokenObtainPairSerializer, RegisterSerializer
+from .serializers import UsernameTokenObtainPairSerializer, RegisterSerializer, LikeWriteSerializer, RecommendationWriteSerializer
 
 from .models import User, Like, Recommendation
 from .serializers import (
@@ -33,7 +33,36 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 # 로그인을 위한 뷰셋
 class LoginView(TokenObtainPairView):
-    serializer_class = EmailRoleAwareTokenObtainPairSerializer
+    serializer_class = UsernameTokenObtainPairSerializer
+    @swagger_auto_schema(
+        operation_summary="로그인 (username + password)",
+        tags=["Auth"],
+        operation_id="loginWithUsername",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["username", "password"],
+            properties={
+                "username": openapi.Schema(type=openapi.TYPE_STRING, example="kim"),
+                "password": openapi.Schema(type=openapi.TYPE_STRING, example="qwerty123"),
+            },
+        ),
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "refresh": openapi.Schema(type=openapi.TYPE_STRING),
+                    "access": openapi.Schema(type=openapi.TYPE_STRING),
+                    "user_role": openapi.Schema(type=openapi.TYPE_STRING, example="OWNER"),
+                    "username": openapi.Schema(type=openapi.TYPE_STRING, example="kim"),
+                },
+            ),
+            401: "Unauthorized",
+        },
+        # 로그인 엔드포인트는 토큰이 필요 없으므로 security 지정 안 함
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)  # 문서 목적으로만 오버라이드
+
 class IsAuthenticatedOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:

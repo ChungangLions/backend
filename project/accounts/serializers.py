@@ -3,6 +3,7 @@ from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
 from .models import User, Like, Recommendation
 from django.contrib.auth import get_user_model, password_validation
+from django.db.models import Q
 
 # 사용자 정의 토큰 발급 시리얼라이저
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -73,6 +74,27 @@ class RegisterSerializer(serializers.ModelSerializer):
             "access": instance["access"],
             "refresh": instance["refresh"],
         }
+
+# 로그인 용 시리얼라이져
+
+class UsernameTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    로그인: {"username": "...", "password": "..."} 만 받음
+    """
+    def validate(self, attrs):
+        data = super().validate(attrs)  # USERNAME_FIELD('username') + password 검증
+        data["user_role"] = self.user.user_role
+        data["username"]  = self.user.username
+        return data
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["user_role"] = user.user_role
+        token["username"]  = user.username
+        return token
+    
+
 class EmailRoleAwareTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     이메일 + 비밀번호로 로그인.
