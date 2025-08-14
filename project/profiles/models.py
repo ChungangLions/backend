@@ -240,7 +240,7 @@ class StudentProfile(models.Model):
     )
 
     #이름
-    name = models.CharField(max_length = 10, blank=False, verbose_name="이름")
+    name = models.CharField(max_length = 10, blank=False, null=True, verbose_name="이름")
 
     # 학교
     university_name = models.CharField(
