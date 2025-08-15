@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import json
 from .permissions import IsOwnerOrReadOnly
 from .models import (
     OwnerProfile, OwnerPhoto, Menu, 
@@ -16,9 +17,7 @@ from .models import (
 )
 from .serializers import (
     OwnerProfileSerializer, OwnerProfileCreateSerializer,
-    OwnerPhotoSerializer, MenuSerializer,
     StudentGroupProfileSerializer, StudentGroupProfileCreateSerializer,
-    StudentPhotoSerializer,
     StudentProfileSerializer, StudentProfileCreateSerializer
 )
 from django.conf import settings
@@ -69,39 +68,38 @@ class OwnerProfileListCreateView(BaseProfileMixin, APIView):
         if serializer.is_valid():
             with transaction.atomic():
                 profile = serializer.save(user=request.user)
-                print("Profile created successfully:", profile.id) # 디버그
+
                 # 대표 사진 업로드 처리
                 photos = request.FILES.getlist('photos')
                 if photos:
-                    existing = profile.photos.count()
-                    if existing + len(photos) > MAX_OWNER_PHOTOS:
+                    if len(photos) > MAX_OWNER_PHOTOS:
                         return Response(
                             {"message": f"대표 사진은 최대 {MAX_OWNER_PHOTOS}장까지 업로드할 수 있습니다."},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
-                    # 현재 개수부터 순서 이어붙이기
-                    start_order = existing
-                    for i, photo in enumerate(photos, start=start_order):
+                    for idx, photo in enumerate(photos):
                         OwnerPhoto.objects.create(
                             owner_profile=profile,
                             image=photo,
-                            order=i
+                            order=idx
                         )
                 
                 # 메뉴 이미지 처리
-                menu_images = request.FILES.getlist('menu_images')
-                menus_data = request.data.get('menus', [])
+                menu_images = request.FILES.getlist('menus_images')
+                menus_data_raw = request.data.get('menus_data', [])
+                try:
+                    menus_data = json.loads(menus_data_raw)
+                except json.JSONDecodeError:
+                    menus_data = []
                 
                 if menus_data:
-                    existing = profile.menus.count()
-                    if existing + len(menus_data) > MAX_OWNER_MENUS:
+                    if len(menus_data) > MAX_OWNER_MENUS:
                         return Response(
                             {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
-                    start_order = existing
-                    for idx, menu_data in enumerate(menus_data, start=start_order):
-                        menu_image = menu_images[idx - start_order] if (idx - start_order) < len(menu_images) else None
+                    for idx, menu_data in enumerate(menus_data):
+                        menu_image = menu_images[idx] if (idx) < len(menu_images) else None
                         Menu.objects.create(
                             owner_profile=profile,
                             name=menu_data.get('name'),
@@ -166,6 +164,49 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
         serializer = OwnerProfileCreateSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             profile = serializer.save()
+
+            # 대표 사진 업로드 처리
+            photos = request.FILES.getlist('photos')
+            # 기존 사진 삭제
+            profile.photos.all().delete()
+            if photos:
+                if len(photos) > MAX_OWNER_PHOTOS:
+                    return Response(
+                        {"message": f"대표 사진은 최대 {MAX_OWNER_PHOTOS}장까지 업로드할 수 있습니다."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                for i, photo in enumerate(photos):
+                    OwnerPhoto.objects.create(
+                        owner_profile=profile,
+                        image=photo,
+                        order=i
+                    )
+            
+            # 메뉴 이미지 처리
+            menu_images = request.FILES.getlist('menus_images')
+            menus_data_raw = request.data.get('menus_data', [])
+            try:
+                menus_data = json.loads(menus_data_raw)
+            except json.JSONDecodeError:
+                menus_data = []
+            
+            profile.menus.all().delete()
+            if menus_data:
+                if len(menus_data) > MAX_OWNER_MENUS:
+                    return Response(
+                        {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                for idx, menu_data in enumerate(menus_data):
+                    menu_image = menu_images[idx] if (idx) < len(menu_images) else None
+                    Menu.objects.create(
+                        owner_profile=profile,
+                        name=menu_data.get('name'),
+                        price=menu_data.get('price'),
+                        image=menu_image,
+                        order=idx
+                    )
+
             updated_profile = OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus').get(id=profile.id)
             return Response(
                 OwnerProfileSerializer(updated_profile).data, 
@@ -191,183 +232,6 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
         
         profile.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class OwnerPhotoCreateView(BaseDetailMixin, APIView):
-    """사장님 프로필 사진 관리"""  
-    @swagger_auto_schema(
-        operation_summary="사장님 프로필 사진 추가",
-        operation_description=( "지정한 프로필 ID(`profile_id`)에 사진을 추가합니다."),
-        manual_parameters=[
-            openapi.Parameter('profile_id',openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER,required=True),
-        ],
-        request_body=OwnerPhotoSerializer,
-        responses={
-            201: OwnerPhotoSerializer,
-            400: "요청 데이터 오류",
-            403: "권한 없음",
-            404: "프로필 없음"
-        }
-    )
-    def post(self, request, profile_id):
-        profile = get_object_or_404(OwnerProfile, pk=profile_id)
-        
-        self.check_object_permissions(request, profile)
-
-        # 최대 10장 제한
-        if profile.photos.count() >= MAX_OWNER_PHOTOS:
-            return Response(
-                {"message": f"대표 사진은 최대 {MAX_OWNER_PHOTOS}장까지 업로드할 수 있습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        
-        serializer = OwnerPhotoSerializer(data=request.data)
-        if serializer.is_valid():
-            photo = serializer.save(owner_profile=profile, order=profile.photos.count())
-            return Response(
-                OwnerPhotoSerializer(photo).data, 
-                status=status.HTTP_201_CREATED
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class OwnerPhotoDeleteView(BaseDetailMixin, APIView):
-    @swagger_auto_schema(
-        operation_summary="사장님 프로필 사진 삭제",
-        operation_description=(
-            "지정한 프로필 ID(`profile_id`)와 사진 ID(`photo_id`)를 기반으로 "
-            "사장님 프로필 사진을 삭제합니다."
-        ),
-        manual_parameters=[
-            openapi.Parameter('profile_id', openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter('photo_id', openapi.IN_PATH,
-            description="사진 ID", type=openapi.TYPE_INTEGER, required=True),
-        ],
-        responses={
-            204: openapi.Response(description="삭제 성공"),
-            403: "권한 없음",
-            404: "해당 사진을 찾을 수 없음"
-        }
-    )
-    def delete(self, request, profile_id, photo_id):
-        photo = get_object_or_404(OwnerPhoto, pk=photo_id, owner_profile_id=profile_id)
-        
-        self.check_object_permissions(request, photo)
-        
-        photo.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class MenuCreateView(BaseProfileMixin, APIView):
-    """메뉴 목록 조회/ 메뉴 생성"""
-    @swagger_auto_schema(
-        operation_summary="특정 프로필의 대표메뉴 목록 조회",
-        operation_description="프로필 ID(`profile_id`)에 해당하는 모든 대표메뉴를 조회합니다.",
-        manual_parameters=[
-            openapi.Parameter('profile_id', openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER, required=True)
-        ],
-        responses={200: MenuSerializer(many=True)}
-    )
-    def get(self, request, profile_id):
-        profile = get_object_or_404(OwnerProfile, pk=profile_id)
-        menus = profile.menus.all()
-        serializer = MenuSerializer(menus, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    @swagger_auto_schema(
-        operation_summary="대표메뉴 추가",
-        operation_description="본인의 프로필(`profile_id`)에 새로운 대표메뉴를 추가합니다.",
-        manual_parameters=[
-            openapi.Parameter('profile_id', openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER, required=True)
-        ],
-        request_body=MenuSerializer,
-        responses={
-            201: MenuSerializer,
-            400: "요청 데이터 오류",
-            403: "권한 없음",
-            404: "프로필 없음"
-        }
-    )
-    def post(self, request, profile_id):
-        profile = get_object_or_404(OwnerProfile, pk=profile_id)
-        
-        self.check_object_permissions(request, profile)
-
-        # 최대 8개 제한
-        if profile.menus.count() >= MAX_OWNER_MENUS:
-            return Response(
-                {"message": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        
-        serializer = MenuSerializer(data=request.data)
-        if serializer.is_valid():
-            menu = serializer.save(owner_profile=profile)
-            return Response(
-                MenuSerializer(menu).data, 
-                status=status.HTTP_201_CREATED
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-class MenuDetailView(BaseDetailMixin, APIView):
-    """메뉴 수정/삭제"""  
-    @swagger_auto_schema(
-        operation_summary="대표메뉴 수정",
-        operation_description="특정 대표메뉴(`menu_id`)를 수정합니다.",
-        manual_parameters=[
-            openapi.Parameter('profile_id', openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter('menu_id', openapi.IN_PATH,
-            description="메뉴 ID", type=openapi.TYPE_INTEGER, required=True)
-        ],
-        request_body=MenuSerializer,
-        responses={
-            200: MenuSerializer,
-            400: "요청 데이터 오류",
-            403: "권한 없음",
-            404: "메뉴 없음"
-        }
-    )
-    def put(self, request, profile_id, menu_id):
-        menu = get_object_or_404(Menu, pk=menu_id, owner_profile_id=profile_id)
-        
-        self.check_object_permissions(request, menu)
-        
-        serializer = MenuSerializer(menu, data=request.data)
-        if serializer.is_valid():
-            menu = serializer.save()
-            return Response(
-                MenuSerializer(menu).data, 
-                status=status.HTTP_200_OK
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @swagger_auto_schema(
-        operation_summary="대표메뉴 삭제",
-        operation_description="특정 대표메뉴(`menu_id`)를 삭제합니다",
-        manual_parameters=[
-            openapi.Parameter('profile_id', openapi.IN_PATH,
-            description="프로필 ID", type=openapi.TYPE_INTEGER, required=True),
-            openapi.Parameter('menu_id', openapi.IN_PATH,
-            description="메뉴 ID", type=openapi.TYPE_INTEGER, required=True)
-        ],
-        responses={
-            204: openapi.Response(description="삭제 성공"),
-            403: "권한 없음",
-            404: "메뉴 없음"
-        }
-    )
-    def delete(self, request, profile_id, menu_id):
-        menu = get_object_or_404(Menu, pk=menu_id, owner_profile_id=profile_id)
-        
-        self.check_object_permissions(request, menu)
-        
-        menu.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 # ------ 학생단체 프로필 관련 Views ------
 class StudentGroupProfileListCreateView(BaseProfileMixin, APIView):

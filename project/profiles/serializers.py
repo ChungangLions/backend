@@ -43,9 +43,9 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
 # --- 업체 프로필 생성/수정용 ---
 class OwnerProfileCreateSerializer(serializers.ModelSerializer):
     
-    photos_data = OwnerPhotoSerializer(many=True, required=False)
-    menus_data = MenuSerializer(many=True, required=False)
-    
+    photos = OwnerPhotoSerializer(many=True, required=False)
+    menus = MenuSerializer(many=True, required=False)
+
     class Meta:
         model = OwnerProfile
         fields = [
@@ -54,7 +54,7 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
-            'photos_data', 'menus_data', 'partnership_type', 'comment'
+            'photos', 'menus', 'partnership_type', 'comment'
         ]
         read_only_fields = ['user']
         
@@ -76,36 +76,16 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        photos_data = validated_data.pop('photos_data', [])
-        menus_data = validated_data.pop('menus_data', [])
         
         owner_profile = OwnerProfile.objects.create(**validated_data)
-        
-        for photo_data in photos_data:
-            OwnerPhoto.objects.create(owner_profile=owner_profile, **photo_data)
-        
-        for menu_data in menus_data:
-            Menu.objects.create(owner_profile=owner_profile, **menu_data)
         
         return owner_profile
     
     def update(self, instance, validated_data):
-        photos_data = validated_data.pop('photos_data', [])
-        menus_data = validated_data.pop('menus_data', [])
         
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        
-        if photos_data:
-            instance.photos.all().delete()
-            for photo_data in photos_data:
-                OwnerPhoto.objects.create(owner_profile=instance, **photo_data)
-        
-        if menus_data:
-            instance.menus.all().delete()
-            for menu_data in menus_data:
-                Menu.objects.create(owner_profile=instance, **menu_data)
         
         return instance
 
@@ -138,7 +118,7 @@ class StudentGroupProfileSerializer(serializers.ModelSerializer):
 # --- 학생단체 프로필 생성/수정용 ---
 class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
     
-    photos_data = StudentPhotoSerializer(many=True, required=False)
+    photos = StudentPhotoSerializer(many=True, required=False)
     
     class Meta:
         model = StudentGroupProfile
@@ -146,7 +126,7 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
             'user', 'position', 'student_size', 'council_name',
             'term_start', 'term_end',
             'partnership_start', 'partnership_end',
-            'photos_data', 'university_name'
+            'photos', 'university_name'
         ]
         read_only_fields = ['user']
 
