@@ -3,8 +3,6 @@ from .views import (
     # 사장님 프로필 관련
     OwnerProfileListCreateView,
     OwnerProfileDetailView,
-    OwnerPhotoCreateView, OwnerPhotoDeleteView,
-    MenuCreateView, MenuDetailView,
     
     # 학생단체 프로필 관련
     StudentGroupProfileListCreateView,
@@ -25,15 +23,6 @@ urlpatterns = [
     
     # 프로필 상세 (조회/수정/삭제)
     path('owners/<int:pk>/', OwnerProfileDetailView.as_view(), name='owner-detail'),
-    
-    # 프로필 사진 관리
-    path('owners/<int:profile_id>/photos/', OwnerPhotoCreateView.as_view(), name='owner-photo-list'),
-    path('owners/<int:profile_id>/photos/<int:photo_id>/', OwnerPhotoDeleteView.as_view(), name='owner-photo-detail'),
-    
-    # 메뉴 관리
-    path('owners/<int:profile_id>/menus/', MenuCreateView.as_view(), name='menu-list'),
-    path('owners/<int:profile_id>/menus/<int:menu_id>/', MenuDetailView.as_view(), name='menu-detail'),
-    
     
     # ------ 학생단체 프로필 관련 URLs ------
     
