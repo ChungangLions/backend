@@ -53,7 +53,13 @@ class Proposal(models.Model):
         verbose_name='수신인',
         help_text='제안서를 받을 업체명 또는 담당자명'
     )
-    
+    '''
+    와프 5.2.S 참고해서 보면
+    업체 정보 관련해서 업종, 대표 사진, 업체명이 있는데 이건 그냥 프로필에서 가져오면 되겠지?
+    그리고 제휴 조건 필드를 만들어야 할 듯? 적용 대상, 적용 시간대, 혜택 내용, 제휴 기간
+    물론 이건 gpt 돌려서 입력받긴 하지만 필드는 만들어 놔야 하지 않을까
+    '''
+
     # ChatGPT 생성 관련
     is_ai_generated = models.BooleanField(
         default=False,
@@ -175,6 +181,7 @@ class ProposalStatus(models.Model):
         verbose_name='변경일시'
     )
     
+    # 상태 변경 사유는 없어도 될듯?
     comment = models.TextField(
         blank=True,
         verbose_name='변경 사유/코멘트',
