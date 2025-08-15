@@ -9,7 +9,6 @@ from .views import (
     # 학생단체 프로필 관련
     StudentGroupProfileListCreateView,
     StudentGroupProfileDetailView,
-    StudentPhotoCreateView, StudentPhotoDeleteView,
     
     # 학생단체 프로필 관련
     StudentProfileListCreateView,
@@ -43,10 +42,6 @@ urlpatterns = [
     
     # 프로필 상세 (조회/수정/삭제)
     path('student-groups/<int:pk>/', StudentGroupProfileDetailView.as_view(), name='student-group-detail'),
-    
-    # 프로필 사진 관리
-    path('student-groups/<int:profile_id>/photos/', StudentPhotoCreateView.as_view(), name='student-group-photo-list'),
-    path('student-groups/<int:profile_id>/photos/<int:photo_id>/', StudentPhotoDeleteView.as_view(), name='student-group-photo-detail'),
 
     # ------ 학생 프로필 관련 URLs ------
     
