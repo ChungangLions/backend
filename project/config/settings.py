@@ -181,11 +181,8 @@ AWS_REGION = 'ap-northeast-2'
 AWS_STORAGE_BUCKET_NAME = 'chunganglions'
 AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME,AWS_REGION)
 AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400',}
-
-# S3 파일 스토리지 설정
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-STATICFILES_STORAGE = 'storages.backends.s3boto3.StaticS3Boto3Storage'
-
+AWS_S3_REGION_NAME = "ap-northeast-2"
+ 
 # S3 미디어 파일 설정
 AWS_S3_FILE_OVERWRITE = False  # 같은 이름의 파일이 있을 때 덮어쓰지 않고 새로운 이름으로 저장
 AWS_DEFAULT_ACL = None  # ACL 설정 (None으로 설정하여 버킷의 기본 ACL 사용)
@@ -243,3 +240,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
 ]
+
+# S3 파일 스토리지 설정
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+from storages.backends.s3boto3 import S3Boto3Storage
+from django.core.files.storage import default_storage
+default_storage._wrapped = S3Boto3Storage()
