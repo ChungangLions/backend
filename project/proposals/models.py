@@ -60,8 +60,9 @@ class Proposal(models.Model):
 
     # === 제휴 조건 ===
     # 적용 대상에 대한 상세 정보를 주로 사용할 것으로 예상 함
+    # 학생회 제휴이기 때문에 대체로 학생회 관련 인원을 대상으로 제휴를 할 가능성이 높음
     apply_target = models.CharField(
-        max_length=30, choices=ApplyTarget.choices, default=ApplyTarget.STUDENTS, db_index=True,
+        max_length=40, choices=ApplyTarget.choices, default=ApplyTarget.GROUP_MEMBERS, db_index=True,
         verbose_name='적용 대상'
     )
     apply_target_other = models.CharField(
