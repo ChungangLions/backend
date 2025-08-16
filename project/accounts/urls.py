@@ -5,7 +5,7 @@ from .views import UserViewSet, LikeViewSet, RecommendationViewSet
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'likes', LikeViewSet, basename='like')
-router.register(r'accounts/recommendations', RecommendationViewSet, basename='recommendations')
+router.register(r'recommendations', RecommendationViewSet, basename='recommendations')
 
 
 urlpatterns = [

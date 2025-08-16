@@ -22,6 +22,7 @@ urlpatterns = [
     # 앱 라우트(버전/도메인별로 래핑)
     path("api/profiles/", include("profiles.urls")),
     path('api/accounts/', include('accounts.urls')),
+    path('api/proposals/', include('proposals.urls')),
 
     # JWT 인증 URL (전역)
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
