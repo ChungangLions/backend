@@ -24,6 +24,7 @@ class Proposal(models.Model):
     - 작성자(author): 학생단체(STUDENT_GROUP) 또는 사장님(OWNER)
     - 수신자(recipient): 작성자의 반대 역할(OWNER ↔ STUDENT_GROUP)
     - 프로필을 읽어 AI 생성할 수 있지만, 프롬프트 자체는 저장하지 않음
+    - 필요한 내용: 제안 제목, 인삿말, 내용, 제휴(적용 대상, 혜택 내용, 적용 시간대, 제휴 기간), 기대 효과, 연락처 (담당자, 연락처)
     """
 
     # 작성자
@@ -58,6 +59,7 @@ class Proposal(models.Model):
     contact_info = models.CharField(max_length=200, verbose_name='연락처')
 
     # === 제휴 조건 ===
+    # 적용 대상에 대한 상세 정보를 주로 사용할 것으로 예상 함
     apply_target = models.CharField(
         max_length=30, choices=ApplyTarget.choices, default=ApplyTarget.STUDENTS, db_index=True,
         verbose_name='적용 대상'
@@ -76,7 +78,7 @@ class Proposal(models.Model):
         max_length=30, choices=BenefitType.choices, default=BenefitType.PERCENT_DISCOUNT, db_index=True,
         verbose_name='혜택 유형'
     )
-    # 퍼센트/정액 모두 커버(퍼센트는 0~100, 정액은 원 단위)
+    # 퍼센트/정액 모두 커버(퍼센트는 0~100, 정액은 원 단위) -> 이 부분은 사용하지 않을 수 있다고 생각함
     benefit_value = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
         verbose_name='혜택 값',
@@ -86,6 +88,8 @@ class Proposal(models.Model):
         max_length=200, blank=True, verbose_name='혜택 상세 설명(예: 무료 음료 1잔)'
     )
 
+    # 제휴 기간
+    # 기간은 선택적(제휴가 영구적일 수도 있으므로)
     period_start = models.DateField(null=True, blank=True, verbose_name='제휴 시작일')
     period_end   = models.DateField(null=True, blank=True, verbose_name='제휴 종료일')
 
@@ -93,7 +97,7 @@ class Proposal(models.Model):
     max_redemptions_per_user = models.PositiveIntegerField(null=True, blank=True, verbose_name='1인 최대 사용 횟수')
     max_total_redemptions    = models.PositiveIntegerField(null=True, blank=True, verbose_name='전체 최대 사용 횟수')
 
-    # 시간
+    # 시간 (제휴 제안서의 생성 및 수정 시각)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일자')
     modified_at = models.DateTimeField(auto_now=True, verbose_name='수정일자')
 
