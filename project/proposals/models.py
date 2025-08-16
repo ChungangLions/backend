@@ -1,138 +1,195 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
+from django.db.models import Q, F
 from accounts.models import User
 
+# ----- 제휴 조건 보조 enum -----
+class ApplyTarget(models.TextChoices):
+    STUDENTS = "STUDENTS", "대학생 전체"
+    GROUP_MEMBERS = "GROUP_MEMBERS", "학생단체 구성원"
+    ALL_CUSTOMERS = "ALL_CUSTOMERS", "모든 손님"
+    OTHER = "OTHER", "기타"
+
+class BenefitType(models.TextChoices):
+    PERCENT_DISCOUNT = "PERCENT_DISCOUNT", "퍼센트 할인"
+    AMOUNT_DISCOUNT  = "AMOUNT_DISCOUNT",  "정액 할인"
+    FREE_ITEM        = "FREE_ITEM",        "무료 제공"
+    OTHER            = "OTHER",            "기타"
+
+
+# ----- 제안서 -----
 class Proposal(models.Model):
-    '''
-    제안서 모델
-    - 학생단체(STUDENT_GROUP)와 사장님(OWNER) 모두 작성 가능
-    - ChatGPT를 통해 프로필 기반 생성되고 사용자가 수정 가능
-    '''
-    
-    # 제안서 작성자 (학생단체 또는 사장님)
+    """
+    제안서
+    - 작성자(author): 학생단체(STUDENT_GROUP) 또는 사장님(OWNER)
+    - 수신자(recipient): 작성자의 반대 역할(OWNER ↔ STUDENT_GROUP)
+    - 프로필을 읽어 AI 생성할 수 있지만, 프롬프트 자체는 저장하지 않음
+    """
+
+    # 작성자
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         limit_choices_to={'user_role__in': [User.Role.STUDENT_GROUP, User.Role.OWNER]},
-        related_name='authored_proposals',
-        verbose_name='제안서 작성자',
-        help_text='제안서를 작성하는 학생단체 또는 사장님'
+        related_name='proposals_authored',
+        verbose_name='작성자',
     )
-    
-    # 제안서 핵심 내용
-    contents = models.TextField(
-        verbose_name='요청 개요',
-        help_text='제휴 요청의 전반적인 개요를 작성해주세요'
-    )
-    
-    partnership_purpose = models.TextField(
-        verbose_name='제휴 목적',
-        help_text='이번 제휴를 통해 달성하고자 하는 목적을 작성해주세요'
-    )
-    
-    expected_effects = models.TextField(
-        verbose_name='기대 효과',
-        help_text='제휴를 통해 기대되는 효과나 결과를 작성해주세요'
-    )
-    
-    # 연락 정보
-    contact_info = models.CharField(
-        max_length=200,
-        verbose_name='연락처',
-        help_text='담당자 연락처 (전화번호, 이메일 등)'
-    )
-    
-    sender = models.CharField(
-        max_length=100,
-        verbose_name='발신인',
-        help_text='제안서를 보내는 학생단체명 또는 담당자명'
-    )
-    
-    recipient = models.CharField(
-        max_length=100,
-        verbose_name='수신인',
-        help_text='제안서를 받을 업체명 또는 담당자명'
-    )
-    '''
-    와프 5.2.S 참고해서 보면
-    업체 정보 관련해서 업종, 대표 사진, 업체명이 있는데 이건 그냥 프로필에서 가져오면 되겠지?
-    그리고 제휴 조건 필드를 만들어야 할 듯? 적용 대상, 적용 시간대, 혜택 내용, 제휴 기간
-    물론 이건 gpt 돌려서 입력받긴 하지만 필드는 만들어 놔야 하지 않을까
-    '''
 
-    # ChatGPT 생성 관련
-    is_ai_generated = models.BooleanField(
-        default=False,
-        verbose_name='AI 생성 여부',
-        help_text='ChatGPT를 통해 생성된 제안서인지 여부'
+    # 수신자 (역할은 author의 반대여야 함)
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'user_role__in': [User.Role.STUDENT_GROUP, User.Role.OWNER]},
+        related_name='proposals_received',
+        verbose_name='수신자',
     )
-    
-    ai_prompt = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='AI 생성 프롬프트',
-        help_text='ChatGPT에 전달한 프롬프트 (디버깅 및 개선용)'
+
+    # 표시용 이름(선택) — 담당자/상호 같은 텍스트 스냅샷
+    sender_name = models.CharField(max_length=100, blank=True, verbose_name='발신인(표시용)')
+    recipient_display_name = models.CharField(max_length=100, blank=True, verbose_name='수신자 표시명(스냅샷)')
+
+    # 제안 본문
+    title = models.CharField(max_length=120, verbose_name='제안 제목')
+    contents = models.TextField(verbose_name='요청 개요')
+    partnership_purpose = models.TextField(verbose_name='제휴 목적')
+    expected_effects = models.TextField(verbose_name='기대 효과')
+
+    # 연락 정보
+    contact_info = models.CharField(max_length=200, verbose_name='연락처')
+
+    # === 제휴 조건 ===
+    apply_target = models.CharField(
+        max_length=30, choices=ApplyTarget.choices, default=ApplyTarget.STUDENTS, db_index=True,
+        verbose_name='적용 대상'
     )
-    
-    # 시간 관리
+    apply_target_other = models.CharField(
+        max_length=200, blank=True, verbose_name='적용 대상(기타 상세)'
+    )
+
+    # 시간대는 유연하게 JSON 사용
+    # 예: [{"days":["Mon","Tue"],"start":"14:00","end":"17:00"}]
+    time_windows = models.JSONField(
+        default=list, blank=True, verbose_name='적용 시간대'
+    )
+
+    benefit_type = models.CharField(
+        max_length=30, choices=BenefitType.choices, default=BenefitType.PERCENT_DISCOUNT, db_index=True,
+        verbose_name='혜택 유형'
+    )
+    # 퍼센트/정액 모두 커버(퍼센트는 0~100, 정액은 원 단위)
+    benefit_value = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name='혜택 값',
+        help_text='퍼센트(0~100) 또는 금액(원). 혜택 유형에 따라 의미가 달라짐.'
+    )
+    benefit_description = models.CharField(
+        max_length=200, blank=True, verbose_name='혜택 상세 설명(예: 무료 음료 1잔)'
+    )
+
+    period_start = models.DateField(null=True, blank=True, verbose_name='제휴 시작일')
+    period_end   = models.DateField(null=True, blank=True, verbose_name='제휴 종료일')
+
+    min_order_amount        = models.PositiveIntegerField(null=True, blank=True, verbose_name='최소 결제 금액(원)')
+    max_redemptions_per_user = models.PositiveIntegerField(null=True, blank=True, verbose_name='1인 최대 사용 횟수')
+    max_total_redemptions    = models.PositiveIntegerField(null=True, blank=True, verbose_name='전체 최대 사용 횟수')
+
+    # 시간
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일자')
     modified_at = models.DateTimeField(auto_now=True, verbose_name='수정일자')
-    
+
     class Meta:
         verbose_name = '제안서'
         verbose_name_plural = '제안서들'
         ordering = ['-created_at']
-    
+        constraints = [
+            # 자기 자신에게 보낼 수 없음
+            models.CheckConstraint(check=~Q(author=F('recipient')), name='ck_proposal_no_self'),
+        ]
+        indexes = [
+            models.Index(fields=['recipient']),
+            models.Index(fields=['author', 'recipient']),
+        ]
+
+    # ---- 유효성 검증 ----
     def clean(self):
-        """
-        작성자 역할 검증
-        """
-        if self.author and self.author.user_role not in [User.Role.STUDENT_GROUP, User.Role.OWNER]:
-            raise ValidationError({
-                'author': '학생단체 또는 사장님만 제안서를 작성할 수 있습니다.'
-            })
-    
+        # 역할 매칭: (학생회 → 사장님) 또는 (사장님 → 학생회)
+        if self.author_id and self.recipient_id:
+            pair = (self.author.user_role, self.recipient.user_role)
+            valid_pairs = {
+                (User.Role.STUDENT_GROUP, User.Role.OWNER),
+                (User.Role.OWNER, User.Role.STUDENT_GROUP),
+            }
+            if pair not in valid_pairs:
+                raise ValidationError({'recipient': '작성자와 수신자는 서로 반대 역할(학생단체 ↔ 사장님)이어야 합니다.'})
+
+        # 기타 상세 필수
+        if self.apply_target == ApplyTarget.OTHER and not self.apply_target_other:
+            raise ValidationError({'apply_target_other': '적용 대상이 기타일 때 상세를 입력하세요.'})
+
+        # 기간 검증
+        if self.period_start and self.period_end and self.period_start > self.period_end:
+            raise ValidationError({'period_end': '제휴 종료일은 시작일 이후여야 합니다.'})
+
+        # 혜택 값 검증
+        if self.benefit_type == BenefitType.PERCENT_DISCOUNT:
+            if self.benefit_value is None or not (0 <= float(self.benefit_value) <= 100):
+                raise ValidationError({'benefit_value': '퍼센트 할인은 0~100 사이여야 합니다.'})
+        elif self.benefit_type == BenefitType.AMOUNT_DISCOUNT:
+            if self.benefit_value is None or float(self.benefit_value) < 0:
+                raise ValidationError({'benefit_value': '정액 할인은 0 이상이어야 합니다.'})
+        # FREE_ITEM/OTHER 는 값 없어도 OK
+
     def save(self, *args, **kwargs):
         is_new = self.pk is None
-        self.clean()
+        self.full_clean()
         super().save(*args, **kwargs)
-        
-        # 새로 생성된 제안서라면 초기 상태 생성
+
+        # 최초 생성 시 상태를 UNREAD로 기록
         if is_new:
             ProposalStatus.objects.create(
                 proposal=self,
                 status=ProposalStatus.Status.UNREAD,
-                changed_by=self.author,
+                changed_by=self.recipient,  # "미열람" 상태의 소유자는 수신자 관점
                 comment='제안서 초기 생성'
             )
-    
+
+    # ---- 편의 ----
     def __str__(self):
-        author_type = "학생단체" if self.author.user_role == User.Role.STUDENT_GROUP else "사장님"
-        return f"제안서 ({author_type}: {self.author.username} → {self.recipient})"
-    
+        a = "학생단체" if self.author.user_role == User.Role.STUDENT_GROUP else "사장님"
+        b = "사장님" if self.recipient.user_role == User.Role.OWNER else "학생단체"
+        return f"제안서({a}: {self.author.username} → {b}: {self.recipient.username})"
+
     @property
     def current_status(self):
-        """현재 상태 반환"""
-        latest_status = self.status_history.latest('changed_at')
-        return latest_status.status if latest_status else ProposalStatus.Status.UNREAD
-    
+        """현재 상태 코드 반환 (없으면 UNREAD)"""
+        try:
+            latest = self.status_history.latest('changed_at')
+            return latest.status
+        except ProposalStatus.DoesNotExist:
+            return ProposalStatus.Status.UNREAD
+
     @property
     def current_status_object(self):
-        """현재 상태 객체 반환"""
-        return self.status_history.latest('changed_at')
-    
+        """현재 상태 객체 반환 (없으면 None)"""
+        try:
+            return self.status_history.latest('changed_at')
+        except ProposalStatus.DoesNotExist:
+            return None
+
     @property
     def is_editable(self):
-        """수정 가능 여부 확인"""
+        # 작성자는 '미열람'일 때만 수정 가능하도록 예시
         return self.current_status == ProposalStatus.Status.UNREAD
-    
+
     @property
     def is_partnership_made(self):
-        """제휴체결 여부 확인"""
         return self.current_status == ProposalStatus.Status.PARTNERSHIP
-    
+
+    @transaction.atomic
     def change_status(self, new_status, changed_by, comment=''):
-        """상태 변경 메서드"""
+        """
+        상태 변경 (권한 체크/전이 규칙은 ProposalStatus.clean()에서 검증)
+        """
         ProposalStatus.objects.create(
             proposal=self,
             status=new_status,
@@ -141,83 +198,73 @@ class Proposal(models.Model):
         )
 
 
-
+# ----- 상태 이력 -----
 class ProposalStatus(models.Model):
-    '''
-    제안서 상태 히스토리 모델
-    - 제안서의 모든 상태 변경을 추적
-    - 누가 언제 상태를 변경했는지 기록
-    '''
-    
+    """
+    제안서 상태 이력
+    UNREAD → READ → PARTNERSHIP/REJECTED
+    REJECTED → UNREAD (재제출 허용)
+    """
     class Status(models.TextChoices):
-        UNREAD = 'UNREAD', '미열람'
-        READ = 'READ', '열람'
+        UNREAD      = 'UNREAD',      '미열람'
+        READ        = 'READ',        '열람'
         PARTNERSHIP = 'PARTNERSHIP', '제휴체결'
-        REJECTED = 'REJECTED', '거절'
-    
-    proposal = models.ForeignKey(
-        Proposal,
-        on_delete=models.CASCADE,
-        related_name='status_history',
-        verbose_name='제안서'
-    )
-    
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        verbose_name='상태'
-    )
-    
-    changed_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='proposal_status_changes',
-        verbose_name='상태 변경자',
-        help_text='상태를 변경한 사용자'
-    )
-    
-    changed_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='변경일시'
-    )
-    
-    # 상태 변경 사유는 없어도 될듯?
-    comment = models.TextField(
-        blank=True,
-        verbose_name='변경 사유/코멘트',
-        help_text='상태 변경 사유, 거절 사유, 제휴 조건 등'
-    )   
+        REJECTED    = 'REJECTED',    '거절'
+
+    proposal   = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='status_history')
+    status     = models.CharField(max_length=20, choices=Status.choices)
+    changed_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='proposal_status_changes')
+    changed_at = models.DateTimeField(auto_now_add=True)
+    comment    = models.TextField(blank=True)
+
     class Meta:
         verbose_name = '제안서 상태'
         verbose_name_plural = '제안서 상태 히스토리'
         ordering = ['-changed_at']
+        get_latest_by = 'changed_at'
         indexes = [
-            models.Index(fields=['proposal', '-changed_at']),
+            models.Index(fields=['proposal', 'changed_at']),
             models.Index(fields=['status']),
         ]
-    
+
     def __str__(self):
-        return f"{self.proposal} - {self.get_status_display()} ({self.changed_by.username})"
-    
+        return f"{self.proposal_id} - {self.get_status_display()} by {self.changed_by.username}"
+
     def clean(self):
         """
-        상태 변경 규칙 검증
+        상태 전이 규칙 + 주체 권한 간단 검증:
+        - UNREAD → READ: 수신자만 가능(열람은 수신자의 행위)
+        - READ → PARTNERSHIP/REJECTED: 수신자만 가능(수락/거절권자는 제안을 받은 쪽)
+        - REJECTED → UNREAD: 작성자만 가능(재제출은 보낸 쪽)
         """
-        # 4단계 상태 전이 규칙
+        if not self.proposal_id or not self.changed_by_id:
+            return
+
+        curr = self.proposal.current_status
+        nxt  = self.status
+        author    = self.proposal.author
+        recipient = self.proposal.recipient
+
         valid_transitions = {
-            self.Status.UNREAD: [self.Status.READ],  # 미열람 → 열람
-            self.Status.READ: [self.Status.PARTNERSHIP, self.Status.REJECTED],  # 열람 → 제휴체결 또는 거절
-            self.Status.PARTNERSHIP: [],  # 제휴체결 (최종 상태)
-            self.Status.REJECTED: [self.Status.UNREAD],  # 거절 → 재제출 가능 (미열람으로)
+            self.Status.UNREAD:      [self.Status.READ],
+            self.Status.READ:        [self.Status.PARTNERSHIP, self.Status.REJECTED],
+            self.Status.PARTNERSHIP: [],
+            self.Status.REJECTED:    [self.Status.UNREAD],
         }
-        
-        if self.proposal_id:
-            current_status = self.proposal.current_status
-            if current_status and self.status not in valid_transitions.get(current_status, []):
-                raise ValidationError({
-                    'status': f'{current_status}에서 {self.status}로 직접 변경할 수 없습니다.'
-                })
-    
+        if nxt not in valid_transitions.get(curr, []):
+            raise ValidationError({'status': f'{curr} → {nxt} 전이는 허용되지 않습니다.'})
+
+        # 전이의 주체 권한
+        if curr == self.Status.UNREAD and nxt == self.Status.READ:
+            if self.changed_by != recipient:
+                raise ValidationError('열람(READ)은 수신자만 할 수 있습니다.')
+        elif curr == self.Status.READ and nxt in (self.Status.PARTNERSHIP, self.Status.REJECTED):
+            if self.changed_by != recipient:
+                raise ValidationError('수락/거절은 수신자만 할 수 있습니다.')
+        elif curr == self.Status.REJECTED and nxt == self.Status.UNREAD:
+            if self.changed_by != author:
+                raise ValidationError('재제출(UNREAD 복귀)은 작성자만 할 수 있습니다.')
+
     def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
+        self.full_clean()
+        return super().save(*args, **kwargs)
