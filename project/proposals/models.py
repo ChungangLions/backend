@@ -66,7 +66,14 @@ class Proposal(models.Model):
 
     # 끝맺음말을 위한 함수
     def build_closing(self):
-        return f"\n감사합니다.\n{self.sender}\n{self.contact_info}"
+        name = (
+            self.sender_name
+            or (self.author.get_full_name() if hasattr(self.author, "get_full_name") else None)
+            or self.author.username
+            or (self.author.email or "")
+        )
+        contact = self.contact_info or ""
+        return f"\n감사합니다.\n{name}\n{contact}"
 
     # 표시용 이름(선택) — 담당자/상호 같은 텍스트 스냅샷
     sender_name = models.CharField(max_length=100, blank=True, verbose_name='발신인(표시용)')
