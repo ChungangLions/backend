@@ -259,6 +259,13 @@ class ProposalStatus(models.Model):
         if not self.proposal_id or not self.changed_by_id:
             return
 
+         # ▶ 첫 상태라면 UNREAD만 허용하고 전이 검증은 스킵
+        latest = self.proposal.status_history.order_by('-changed_at').first()
+        if latest is None:
+            if self.status != self.Status.UNREAD:
+                raise ValidationError({'status': '첫 상태는 UNREAD여야 합니다.'})
+            return
+        
         curr = self.proposal.current_status
         nxt  = self.status
         author    = self.proposal.author
