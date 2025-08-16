@@ -149,6 +149,7 @@ class MiniUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "user_role")
+        ref_name = "AccountMiniUser"
 
 
 # --- 유저 상세/목록 공용 ---

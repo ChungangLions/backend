@@ -14,6 +14,7 @@ class MiniUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "user_role")
+        ref_name = "ProposalMiniUser"
 
 
 # ---- 상태 이력(Read) ----
