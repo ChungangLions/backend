@@ -79,12 +79,7 @@ class Proposal(models.Model):
         max_length=30, choices=BenefitType.choices, default=BenefitType.PERCENT_DISCOUNT, db_index=True,
         verbose_name='혜택 유형'
     )
-    # 퍼센트/정액 모두 커버(퍼센트는 0~100, 정액은 원 단위) -> 이 부분은 사용하지 않을 수 있다고 생각함
-    benefit_value = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        verbose_name='혜택 값',
-        help_text='퍼센트(0~100) 또는 금액(원). 혜택 유형에 따라 의미가 달라짐.'
-    )
+    
     benefit_description = models.CharField(
         max_length=200, blank=True, verbose_name='혜택 상세 설명(예: 무료 음료 1잔)'
     )
@@ -135,13 +130,6 @@ class Proposal(models.Model):
         if self.period_start and self.period_end and self.period_start > self.period_end:
             raise ValidationError({'period_end': '제휴 종료일은 시작일 이후여야 합니다.'})
 
-        # 혜택 값 검증
-        if self.benefit_type == BenefitType.PERCENT_DISCOUNT:
-            if self.benefit_value is None or not (0 <= float(self.benefit_value) <= 100):
-                raise ValidationError({'benefit_value': '퍼센트 할인은 0~100 사이여야 합니다.'})
-        elif self.benefit_type == BenefitType.AMOUNT_DISCOUNT:
-            if self.benefit_value is None or float(self.benefit_value) < 0:
-                raise ValidationError({'benefit_value': '정액 할인은 0 이상이어야 합니다.'})
         # FREE_ITEM/OTHER 는 값 없어도 OK
 
     def save(self, *args, **kwargs):
