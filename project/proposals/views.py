@@ -90,7 +90,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
     # --- 생성/수정은 serializer에서 author/권한 검증 수행 ---
     def perform_create(self, serializer):
         # author는 serializer.validate에서 request.user 사용
-        serializer.save()
+        user = self.request.user
+        recipient = serializer.validated_data['recipient']
+        serializer.save(
+            author=user,
+            sender_name=user.username,
+            recipient_display_name=recipient.username,
+        )
 
     def perform_update(self, serializer):
         serializer.save()
@@ -175,12 +181,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
         tags=["Proposals"],
     )
     def create(self, request, *args, **kwargs):
-        resp = super().create(request, *args, **kwargs)
-        # 생성 직후 상세 포맷으로 돌려주기
-        if resp.status_code == status.HTTP_201_CREATED:
-            obj = Proposal.objects.get(pk=resp.data["id"])
-            return Response(ProposalReadSerializer(obj, context={"request": request}).data, status=201)
-        return resp
+        # resp = super().create(request, *args, **kwargs)
+        # # 생성 직후 상세 포맷으로 돌려주기
+        # if resp.status_code == status.HTTP_201_CREATED:
+        #     obj = Proposal.objects.get(pk=resp.data["id"])
+        #     return Response(ProposalReadSerializer(obj, context={"request": request}).data, status=201)
+        # return resp
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        instance = serializer.instance  # ✅ 방금 저장된 객체
+        out = ProposalDetailSerializer(instance, context=self.get_serializer_context())
+        headers = self.get_success_headers(out.data)
+        return Response(out.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @swagger_auto_schema(
         operation_summary="제안서 수정",
