@@ -4,12 +4,14 @@ from django.db.models import Q, F
 from accounts.models import User
 
 # ----- 제휴 조건 보조 enum -----
+# 제안이 적용되는 유형
 class ApplyTarget(models.TextChoices):
     STUDENTS = "STUDENTS", "대학생 전체"
     GROUP_MEMBERS = "GROUP_MEMBERS", "학생단체 구성원"
     ALL_CUSTOMERS = "ALL_CUSTOMERS", "모든 손님"
     OTHER = "OTHER", "기타"
 
+# 제안의 방식
 class BenefitType(models.TextChoices):
     PERCENT_DISCOUNT = "PERCENT_DISCOUNT", "퍼센트 할인"
     AMOUNT_DISCOUNT  = "AMOUNT_DISCOUNT",  "정액 할인"
@@ -44,6 +46,27 @@ class Proposal(models.Model):
         related_name='proposals_received',
         verbose_name='수신자',
     )
+
+    # 인삿말을 위한 함수
+    def build_greeting(self):
+        # 역할에 따라 약간씩 다르게
+        # 사장님이 작성한 제안서의 경우, 학생회에 대한 감사 인사
+        if self.author.user_role == User.Role.OWNER:
+            to_who = "학생회"
+            return (
+            f"안녕하세요.\n"
+            f"귀 {to_who}의 적극적인 학생 복지 및 교내 활동 지원에 항상 감사드립니다.\n"
+            f"저희 업체는 학생들에게 더 나은 서비스를 제공하고자 , 아래와 같이 제휴를 제안드립니다.")
+        else:
+            # 학생회가 작성한 제안서의 경우, 사장님에 대한 존경 인사
+            return (
+            f"안녕하세요.\n"
+            f"학생들의 학교생활과 지역 상권과의 상생을 위해, 귀 가게와의 제휴를 정중하게 요청드립니다\n"
+            f"아래의 내용을 참고하시어 긍정적인 검토 부탁드립니다.")
+
+    # 끝맺음말을 위한 함수
+    def build_closing(self):
+        return f"\n감사합니다.\n{self.sender}\n{self.contact_info}"
 
     # 표시용 이름(선택) — 담당자/상호 같은 텍스트 스냅샷
     sender_name = models.CharField(max_length=100, blank=True, verbose_name='발신인(표시용)')
