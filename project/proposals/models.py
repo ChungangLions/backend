@@ -75,13 +75,15 @@ class Proposal(models.Model):
         default=list, blank=True, verbose_name='적용 시간대'
     )
 
+    # 혜택의 종류, 혜택 설명이 있기 때문에 사용하지 않을 수 있음
     benefit_type = models.CharField(
         max_length=30, choices=BenefitType.choices, default=BenefitType.PERCENT_DISCOUNT, db_index=True,
         verbose_name='혜택 유형'
     )
     
+    # 혜택 설명, 수치로 적을 필요 없고 문장 형태로 작성
     benefit_description = models.CharField(
-        max_length=200, blank=True, verbose_name='혜택 상세 설명(예: 무료 음료 1잔)'
+        max_length=250, blank=True, verbose_name='혜택 상세 설명(예: 무료 음료 1잔)'
     )
 
     # 제휴 기간
@@ -93,7 +95,8 @@ class Proposal(models.Model):
     max_redemptions_per_user = models.PositiveIntegerField(null=True, blank=True, verbose_name='1인 최대 사용 횟수')
     max_total_redemptions    = models.PositiveIntegerField(null=True, blank=True, verbose_name='전체 최대 사용 횟수')
 
-    # 시간 (제휴 제안서의 생성 및 수정 시각)
+    # 시간 (제휴 제안서의 생성 및 수정 시각) ->> 생성일자를 기준으로 목록 정렬에 사용
+    # 수정일자는 자동으로 갱신됨
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일자')
     modified_at = models.DateTimeField(auto_now=True, verbose_name='수정일자')
 
