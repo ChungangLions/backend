@@ -52,6 +52,7 @@ class LoginView(TokenObtainPairView):
                 properties={
                     "refresh": openapi.Schema(type=openapi.TYPE_STRING),
                     "access": openapi.Schema(type=openapi.TYPE_STRING),
+                    "id": openapi.Schema(type=openapi.TYPE_INTEGER, example=2),
                     "user_role": openapi.Schema(type=openapi.TYPE_STRING, example="OWNER"),
                     "username": openapi.Schema(type=openapi.TYPE_STRING, example="kim"),
                 },

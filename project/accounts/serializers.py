@@ -83,6 +83,7 @@ class UsernameTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     def validate(self, attrs):
         data = super().validate(attrs)  # USERNAME_FIELD('username') + password 검증
+        data["id"]        = self.user.id
         data["user_role"] = self.user.user_role
         data["username"]  = self.user.username
         return data
