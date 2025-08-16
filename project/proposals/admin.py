@@ -60,7 +60,7 @@ class ProposalAdmin(admin.ModelAdmin):
                 "benefit_type", "benefit_description",
                 "time_windows",
                 "period_start", "period_end",
-                "min_order_amount", "max_redemptions_per_user", "max_total_redemptions",
+                # "min_order_amount", "max_redemptions_per_user", "max_total_redemptions",
             )
         }),
         ("메타", {"fields": ("created_at", "modified_at")}),
