@@ -68,7 +68,6 @@ class OwnerProfileListCreateView(BaseProfileMixin, APIView):
         if serializer.is_valid():
             with transaction.atomic():
                 profile = serializer.save(user=request.user)
-
                 # 대표 사진 업로드 처리
                 photos = request.FILES.getlist('photos')
                 if photos:
@@ -78,12 +77,14 @@ class OwnerProfileListCreateView(BaseProfileMixin, APIView):
                             status=status.HTTP_400_BAD_REQUEST,
                         )
                     for idx, photo in enumerate(photos):
-                        OwnerPhoto.objects.create(
+                        photo.seek(0)
+                        owner_photo = OwnerPhoto.objects.create(
                             owner_profile=profile,
                             image=photo,
                             order=idx
                         )
-                
+                        owner_photo.save()
+
                 # 메뉴 이미지 처리
                 menu_images = request.FILES.getlist('menus_images')
                 menus_data_raw = request.data.get('menus_data', [])
