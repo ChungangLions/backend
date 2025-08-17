@@ -58,7 +58,7 @@ class ProposalAdmin(admin.ModelAdmin):
             "fields": (
                 "apply_target", "apply_target_other",
                 "benefit_type", "benefit_description",
-                "time_windows",
+                "time_windows", "partnership_type",
                 "period_start", "period_end",
                 # "min_order_amount", "max_redemptions_per_user", "max_total_redemptions",
             )
