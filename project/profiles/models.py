@@ -122,12 +122,6 @@ class OwnerProfile(models.Model):
     def __str__(self):
         return self.profile_name
     
-    # 제휴 유형
-    partnership_type = models.JSONField(
-        default=list, blank=True,
-        help_text='할인형, 리뷰형, 서비스제공형, 타임형 중 하나 이상' # 예 : ["할인형", "리뷰형"]   
-    )
-    
 # 대표 사진 : 여러개 저장을 위해 별도 테이블 생성
 class OwnerPhoto(models.Model):
     owner_profile = models.ForeignKey(

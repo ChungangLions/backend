@@ -47,13 +47,10 @@ class OwnerProfileListCreateView(BaseProfileMixin, APIView):
         
         # 필터링
         business_type = request.query_params.get('business_type')
-        partnership_type = request.query_params.get('partnership_type')
         
         if business_type:
             profiles = profiles.filter(business_type=business_type)
-        if partnership_type:
-            profiles = profiles.filter(partnership_type=partnership_type)
-            
+              
         serializer = OwnerProfileSerializer(profiles, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
