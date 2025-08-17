@@ -47,7 +47,7 @@ class ProposalReadSerializer(serializers.ModelSerializer):
             # 스냅샷(표시용)
             "sender_name", "recipient_display_name",
             # 본문
-            "title", "contents", "partnership_purpose", "expected_effects",
+            "title", "contents", "expected_effects",
             # 연락
             "contact_info",
             # 제휴 조건
@@ -91,7 +91,7 @@ class ProposalWriteSerializer(serializers.ModelSerializer):
         fields = [
             "recipient",
             # 본문
-            "title", "contents", "partnership_purpose", "expected_effects",
+            "title", "contents", "expected_effects",
             # 연락
             "contact_info",
             # 제휴 조건

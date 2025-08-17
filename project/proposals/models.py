@@ -55,7 +55,7 @@ class Proposal(models.Model):
     # 제안 본문
     title = models.CharField(max_length=120, verbose_name='제안 제목')
     contents = models.TextField(verbose_name='요청 개요')
-    partnership_purpose = models.TextField(verbose_name='제휴 목적')
+    # partnership_purpose = models.TextField(verbose_name='제휴 목적') -> PM이 필요 없다고 한 부분
     expected_effects = models.TextField(verbose_name='기대 효과')
 
     # 연락 정보
