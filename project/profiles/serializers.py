@@ -36,7 +36,7 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
             'created_at', 'modified_at',
-            'photos', 'menus', 'partnership_type', 'comment'
+            'photos', 'menus', 'comment'
         ]
         read_only_fields = ['id', 'user', 'created_at', 'modified_at']
     
@@ -54,7 +54,7 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
-            'photos', 'menus', 'partnership_type', 'comment'
+            'photos', 'menus', 'comment'
         ]
         read_only_fields = ['user']
         
