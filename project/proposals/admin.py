@@ -53,12 +53,12 @@ class ProposalAdmin(admin.ModelAdmin):
             "fields": ("title", "author", "recipient",
                        "sender_name", "recipient_display_name", "contact_info")
         }),
-        ("본문", {"fields": ("contents", "partnership_purpose", "expected_effects")}),
+        ("본문", {"fields": ("contents", "expected_effects")}),
         ("제휴 조건", {
             "fields": (
                 "apply_target", "apply_target_other",
                 "benefit_type", "benefit_description",
-                "time_windows",
+                "time_windows", "partnership_type",
                 "period_start", "period_end",
                 # "min_order_amount", "max_redemptions_per_user", "max_total_redemptions",
             )

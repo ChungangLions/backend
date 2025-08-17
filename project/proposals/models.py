@@ -55,8 +55,10 @@ class Proposal(models.Model):
     # 제안 본문
     title = models.CharField(max_length=120, verbose_name='제안 제목')
     contents = models.TextField(verbose_name='요청 개요')
-    partnership_purpose = models.TextField(verbose_name='제휴 목적')
+    # partnership_purpose = models.TextField(verbose_name='제휴 목적') -> PM이 필요 없다고 한 부분
     expected_effects = models.TextField(verbose_name='기대 효과')
+    partnership_type = models.JSONField(default = list, blank=True, verbose_name='제휴 방식', help_text='할인형, 리뷰형, 서비스제공형, 타임형 중 하나 이상')
+    # 예: ["할인형", "리뷰형"]
 
     # 연락 정보
     contact_info = models.CharField(max_length=200, verbose_name='연락처')
