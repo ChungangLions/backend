@@ -14,6 +14,14 @@ from .serializers import (
     ProposalStatusChangeSerializer,
 )
 
+# GPT를 이용한 제안서 생성 서비스
+from profiles.serializers import OwnerProfileForAISerializer
+from proposals.services.get_info import get_owner_profile_snapshot_by_user_id
+from proposals.services.make_prompt import generate_proposal_from_owner_profile
+from accounts.models import User
+from profiles.models import OwnerProfile
+
+
 # 필요한 view 목록
 '''
 1. 제안서 목록 조회 (작성 일자를 기준으로 정렬)
@@ -221,3 +229,68 @@ class ProposalViewSet(viewsets.ModelViewSet):
             obj = self.get_object()
             return Response(ProposalReadSerializer(obj, context={"request": request}).data)
         return resp
+    
+    # GPT 기반 제안서 자동 생성 액션
+    @swagger_auto_schema(
+        method='post',
+        operation_summary="(AI) 사장님 프로필 기반 제안서 자동 생성",
+        tags=["Proposals"],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["recipient"],
+            properties={
+                "recipient": openapi.Schema(type=openapi.TYPE_INTEGER, description="사장님(User.id)"),
+                "contact_info": openapi.Schema(type=openapi.TYPE_STRING, description="작성자 연락처(선택; 미지정 시 이메일 등 사용)"),
+            }
+        ),
+        responses={201: ProposalReadSerializer()},
+        security=[{"Bearer": []}],
+    )
+    @action(detail=False, methods=['post'], url_path='ai-draft')
+    def ai_draft(self, request):
+        """
+        - request.user: 작성자(학생단체 or 사장님)
+        - recipient: 사장님(User.id) — 이 사장님의 OwnerProfile을 읽어 제안서 초안 생성
+        """
+        recipient_id = request.data.get("recipient")
+        if not recipient_id:
+            return Response({"detail": "recipient는 필수입니다."}, status=400)
+
+        # 수신자 존재/역할 체크
+        try:
+            recipient = User.objects.get(pk=recipient_id)
+        except User.DoesNotExist:
+            return Response({"detail": "수신자(유저)가 존재하지 않습니다."}, status=404)
+
+        # 여기선 '사장님 프로필 기반'이므로 수신자가 OWNER인지 확인
+        if recipient.user_role != User.Role.OWNER:
+            return Response({"detail": "수신자는 사장님(OWNER)이어야 합니다."}, status=400)
+
+        # 사장님 프로필 스냅샷 추출
+        try:
+            profile_dict = get_owner_profile_snapshot_by_user_id(recipient_id)
+        except OwnerProfile.DoesNotExist:
+            return Response({"detail": "수신자 사장님의 프로필이 없습니다."}, status=400)
+
+        # 작성자 정보
+        author = request.user
+        author_name = author.username or (author.email or "")
+        author_contact = request.data.get("contact_info") or author.email or ""
+
+        # GPT 호출 → 초안(JSON)
+        ai_dict = generate_proposal_from_owner_profile(
+            owner_profile=profile_dict,
+            author_name=author_name,
+            author_contact=author_contact,
+        )
+
+        # 서버에서 recipient 주입 후, 표준 WriteSerializer로 검증/생성
+        ai_dict["recipient"] = recipient_id
+        serializer = ProposalWriteSerializer(data=ai_dict, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            ProposalReadSerializer(serializer.instance, context={"request": request}).data,
+            status=status.HTTP_201_CREATED
+        )

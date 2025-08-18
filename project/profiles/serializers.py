@@ -187,3 +187,25 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("지원되지 않는 이미지 형식입니다.")
         
         return value
+
+# GPT한테 넘길 사장님의 프로필 Serializer
+class OwnerProfileForAISerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OwnerProfile
+        fields = (
+            'user.id', # 사장님 ID
+            'campus_name', # 주변 대학교 이름
+            'business_type', # 업종 ex) 카페, 주점
+            'profile_name', # 가게 이름
+            'business_day', # 영업일 예: {"월": ["09:00-15:00"], "수": ["18:00-24:00"]}
+            'partnership_goal', # 제휴 목표
+            'partnership_goal_other', # 제휴 목표 (기타), 없으면 빈 문자열
+            'average_sales', # 인당 평균 매출
+            'margin_rate', # 마진율
+            'peak_time', # 피크 타임
+            'off_peak_time', # 한산 시간대
+            'available_service', # 제공 서비스
+            'available_service_other', # 제공 서비스 (기타), 없으면 빈 문자열
+            'comment', # 한줄 소개
+        )
+        read_only_fields = fields
