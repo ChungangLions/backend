@@ -234,11 +234,15 @@ CORS_ALLOW_CREDENTIALS = True
 # 여기에서의 localhost는 EC2 인스턴스의 로컬환경이 아니라 프론트엔드 개발 로컬 환경 의미
 # 3000 포트는 프론트엔드 React 애플리케이션의 포트 번호
 # 추후 프론트엔드에서 웹 페이지 배포 후 도메인 매핑했다면 해당 도메인 추가 필요
+CSRF_TRUSTED_ORIGINS = [
+    "https://huniverse.p-e.kr",
+]
 CORS_ALLOWED_ORIGINS = [ 
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5500",
     "http://127.0.0.1:5500",
+    "https://huniverse.p-e.kr",
 ]
 
 # S3 파일 스토리지 설정
