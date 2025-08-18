@@ -36,7 +36,7 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
             'created_at', 'modified_at',
-            'photos', 'menus', 'comment'
+            'photos', 'menus', 'comment', 'contact'
         ]
         read_only_fields = ['id', 'user', 'created_at', 'modified_at']
     
@@ -54,7 +54,7 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
-            'photos', 'menus', 'comment'
+            'photos', 'menus', 'comment', 'contact'
         ]
         read_only_fields = ['user']
         
@@ -106,12 +106,12 @@ class StudentGroupProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentGroupProfile
         fields = [
-            'id', 'user', 'council_name',
+            'id', 'user', 'council_name', 'department',
             'position', 'student_size',
             'term_start', 'term_end',
             'partnership_start', 'partnership_end',
             'partnership_count',
-            'photos', 'university_name'
+            'photos', 'university_name', 'contact'
         ]
         read_only_fields = ['id', 'user']
 
@@ -123,10 +123,10 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentGroupProfile
         fields = [
-            'user', 'position', 'student_size', 'council_name',
+            'user', 'position', 'student_size', 'council_name', 'department',
             'term_start', 'term_end',
             'partnership_start', 'partnership_end',
-            'photos', 'university_name'
+            'photos', 'university_name', 'contact'
         ]
         read_only_fields = ['user']
 

@@ -114,7 +114,10 @@ class OwnerProfile(models.Model):
     )
 
     # 한줄소개
-    comment = models.CharField(max_length=25)
+    comment = models.CharField(max_length=25, blank=True, null=True)
+
+    # 연락처 
+    contact = models.CharField(max_length=25, blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일')
     modified_at = models.DateTimeField(auto_now=True, verbose_name='수정일')
@@ -179,8 +182,15 @@ class StudentGroupProfile(models.Model):
     # 소속 
     council_name = models.CharField(
         max_length = 100, blank=True, null=True,
-        help_text="소속된 학생회"
+        help_text="소속"
     )
+
+    # 학생회명
+    department = models.CharField(
+        max_length = 100, blank=True, null=True,
+        help_text="학생회명"
+    )
+    
     
     # 직책
     position = models.CharField(max_length=30)
@@ -194,6 +204,9 @@ class StudentGroupProfile(models.Model):
     # 임기
     term_start = models.DateField(verbose_name="임기 시작일")
     term_end = models.DateField(verbose_name="임기 종료일")
+
+    # 연락처 
+    contact = models.CharField(max_length=25, blank=True, null=True)
     
     # 제휴 기간
     partnership_start = models.DateField(verbose_name="제휴 시작일")

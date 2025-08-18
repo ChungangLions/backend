@@ -266,11 +266,13 @@ class StudentGroupProfileListCreateView(BaseProfileMixin, APIView):
                 # 프로필 사진 업로드 처리
                 photos = request.FILES.getlist('photos')
                 for idx, photo in enumerate(photos):
-                    StudentPhoto.objects.create(
+                    photo.seek(0)
+                    student_group_photo = StudentPhoto.objects.create(
                         student_group_profile=profile,
                         image=photo,
                         order=idx
                     )
+                    student_group_photo.save()
             
             # 생성된 프로필을 다시 조회하여 관련 데이터와 함께 반환
             created_profile = StudentGroupProfile.objects.select_related('user').prefetch_related('photos').get(id=profile.id)
@@ -321,8 +323,9 @@ class StudentGroupProfileDetailView(BaseDetailMixin, APIView):
         if serializer.is_valid():
             profile = serializer.save()
 
+            photos = request.FILES.getlist('photos')
             # 사진 수정 로직
-            if 'photos' in request.FILES:
+            if photos:
                 # 기존 사진 삭제
                 profile.photos.all().delete()
                 # 새 사진 저장
