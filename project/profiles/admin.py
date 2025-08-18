@@ -40,7 +40,7 @@ class OwnerProfileAdmin(admin.ModelAdmin):
         'profile_name', 'user', 'business_type', 
         'campus_name', 'partnership_goal', 
         'average_sales', 'margin_rate',
-        'photo_count', 'menu_count', 'created_at'
+        'photo_count', 'menu_count', 'created_at', 'contact'
     ]
     list_filter = [
         'business_type', 'partnership_goal', 
@@ -48,13 +48,13 @@ class OwnerProfileAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'profile_name', 'user__username', 'user__email',
-        'campus_name', 'comment'
+        'campus_name', 'comment', 'contact'
     ]
     readonly_fields = ['created_at', 'modified_at']
     
     fieldsets = (
         ('기본 정보', {
-            'fields': ('user', 'profile_name', 'campus_name', 'business_type', 'comment')
+            'fields': ('user', 'profile_name', 'campus_name', 'business_type', 'comment', 'contact')
         }),
         ('영업 정보', {
             'fields': ('business_day', 'peak_time', 'off_peak_time')
@@ -149,20 +149,20 @@ class StudentGroupProfileAdmin(admin.ModelAdmin):
     list_display = [
         'council_name', 'department', 'user', 'university_name', 
         'position', 'student_size', 'partnership_count',
-        'term_period', 'partnership_period', 'photo_count'
+        'term_period', 'partnership_period', 'photo_count', 'contact'
     ]
     list_filter = [
         'university_name', 'department', 'position', 'partnership_count'
     ]
     search_fields = [
         'council_name', 'user__username', 'user__email',
-        'university_name', 'position'
+        'university_name', 'position', 'contact'
     ]
     list_editable = ['partnership_count']
     
     fieldsets = (
         ('기본 정보', {
-            'fields': ('user', 'university_name', 'council_name', 'department', 'position', 'student_size')
+            'fields': ('user', 'university_name', 'council_name', 'department', 'position', 'student_size', 'contact')
         }),
         ('임기 정보', {
             'fields': ('term_start', 'term_end')
