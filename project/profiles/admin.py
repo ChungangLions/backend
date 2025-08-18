@@ -147,12 +147,12 @@ class StudentPhotoInline(admin.TabularInline):
 @admin.register(StudentGroupProfile)
 class StudentGroupProfileAdmin(admin.ModelAdmin):
     list_display = [
-        'council_name', 'user', 'university_name', 
+        'council_name', 'department', 'user', 'university_name', 
         'position', 'student_size', 'partnership_count',
         'term_period', 'partnership_period', 'photo_count'
     ]
     list_filter = [
-        'university_name', 'position', 'partnership_count'
+        'university_name', 'department', 'position', 'partnership_count'
     ]
     search_fields = [
         'council_name', 'user__username', 'user__email',
@@ -162,7 +162,7 @@ class StudentGroupProfileAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('기본 정보', {
-            'fields': ('user', 'university_name', 'council_name', 'position', 'student_size')
+            'fields': ('user', 'university_name', 'council_name', 'department', 'position', 'student_size')
         }),
         ('임기 정보', {
             'fields': ('term_start', 'term_end')
