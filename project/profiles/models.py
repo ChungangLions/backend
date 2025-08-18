@@ -179,8 +179,15 @@ class StudentGroupProfile(models.Model):
     # 소속 
     council_name = models.CharField(
         max_length = 100, blank=True, null=True,
-        help_text="소속된 학생회"
+        help_text="소속"
     )
+
+    # 학생회명
+    department = models.CharField(
+        max_length = 100, blank=True, null=True,
+        help_text="학생회명"
+    )
+    
     
     # 직책
     position = models.CharField(max_length=30)

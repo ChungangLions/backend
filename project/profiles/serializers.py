@@ -106,7 +106,7 @@ class StudentGroupProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentGroupProfile
         fields = [
-            'id', 'user', 'council_name',
+            'id', 'user', 'council_name', 'department',
             'position', 'student_size',
             'term_start', 'term_end',
             'partnership_start', 'partnership_end',
@@ -123,7 +123,7 @@ class StudentGroupProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentGroupProfile
         fields = [
-            'user', 'position', 'student_size', 'council_name',
+            'user', 'position', 'student_size', 'council_name', 'department',
             'term_start', 'term_end',
             'partnership_start', 'partnership_end',
             'photos', 'university_name'
