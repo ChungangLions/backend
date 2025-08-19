@@ -204,7 +204,7 @@ class ProposalStatusChangeSerializer(serializers.ModelSerializer):
         )
         obj.save()  # clean() 내부에서 전이 규칙/권한을 검증
 
-        if validated_data["status"] == "SIGNED":  # 실제 상태명에 맞게 수정
+        if validated_data["status"] == "PARTNERSHIP":
             # 학생단체가 author인 경우
             if proposal.author.user_role == User.Role.STUDENT_GROUP:
                 try:
