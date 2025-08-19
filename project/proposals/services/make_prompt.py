@@ -53,7 +53,7 @@ def generate_proposal_from_owner_profile(
     - title은 30자 이내로 간결하게 작성해. 예를들어 프로필에서 profile_name과 업종을 얻어서 결합해. 결합 순서는 업종 + 가게 이름이야. 예를들어 업종이 카페이고 이름이 "Middle Door"라면 title은 "카페 'Middle Door' 제휴 요청 제안서"가 되어야 해.
     - contents는 100자 이내로 작성해. 내용은 주로 제휴 목적에 대한 내용이 들어가야 함. 사장님 profiles의 partnership_goal을 참고해. 만약 partnership_goal이 없다면 "제휴를 통해 상호 이익을 도모하고자 합니다."라고 작성해. 또한 partnership_goal_other의 내용이 있다면, 그 내용도 고려해서 작성해야 함.
     - expected_effects는 100자 이내로 작성해. 제휴를 통해 기대되는 효과를 간단히 작성해. 사장님 profiles의 margin_rate를 참고해서 averages_sales과 관련하여 예상 기대효과를 작성해줘. 너무 과장되게 쓰지 말고 현실적인 수치를 이용하는 것이 좋을 것 같음
-    - partnership_type은 제휴 방식을 나타내는 거야. list 형태로 반환을 해야하는데 "할인형", "리뷰형", "서비스제공형", "타임형" 중 하나 이상을 선택해야 해. margin_rate가 7% 이상이 되는 경우 할인형을 선택하는 것이 좋겠고, 리뷰형은 리뷰를 작성해주는 조건이 필요해. 서비스제공형은 사장님이 제공하는 서비스가 있어야 하고, 타임형은 특정 시간대에만 적용되는 제휴야.
+    - partnership_type은 제휴 방식을 나타내는 거야. list 형태로 반환을 해야하는데 "할인형", "리뷰형", "서비스제공형", "타임형" 중 하나 이상을 선택해야 해. margin_rate가 30% 이상이 되는 경우 할인형을 선택하는 것이 좋겠고, 리뷰형은 리뷰를 작성해주는 조건이 필요해. 서비스제공형은 사장님이 제공하는 서비스가 있어야 하고, 타임형은 특정 시간대에만 적용되는 제휴야.
     - apply_target은 ALLOWED_APPLY_TARGETS 중 하나여야 해. 만약 "OTHER"를 선택했다면 apply_target_other에 이유를 간단히 적어야 해.
     - apply_target_other에는 사장님이 제휴를 원하는 구체적인 대상을 적어야 해. 100자 이내로 작성해주면 될거 같아. 필수로 작성할 필드는 아니고 apply_target에서 OTHER이 들어왔을 때만을 고려하면 될거 같아.
     - time_windows의 경우 제휴 적용 시간대를 나타내는 거야. 그렇다면 사장님 프로필에서 한산 시간대를 활용하는 것이 좋겠지. off_peak_time의 내용을 참고해. 주말과 평일 모두 포함하진 않아도 됨.
@@ -71,7 +71,7 @@ def generate_proposal_from_owner_profile(
       "business_type": "카페",
       "partnership_goal": "상호 이익 도모와 장기적인 협력",
       "partnership_goal_other": "",
-      "margin_rate": 8,
+      "margin_rate": 45,
       "average_sales": 12000,
       "peak_time": [
         {"days": ["금요일", "토요일"], "start": "14:00", "end": "16:00"}
@@ -89,7 +89,7 @@ def generate_proposal_from_owner_profile(
     {
         "title": "카페 'Middle Door' 제휴 요청 제안서",
         "contents": "제휴를 통해 상호 이익을 증진 및 장기적인 협력을 통해 장기 고객 유치를 도모하고자 합니다.",
-        "expected_effects": "제휴를 통해 7 ~ 8%의 매출 증가가 예상됩니다.",
+        "expected_effects": "제휴를 통해 10%의 매출 증가가 예상됩니다.",
         "partnership_type": ["할인형"],
         "contact_info": "{author_contact}",
         "apply_target": "STUDENT",
