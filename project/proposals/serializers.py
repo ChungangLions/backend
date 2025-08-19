@@ -9,6 +9,8 @@ from .models import (
     ApplyTarget, BenefitType,
 )
 
+from profiles.models import StudentGroupProfile
+
 # ---- 공용: 경량 유저 표현 ----
 class MiniUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -201,4 +203,23 @@ class ProposalStatusChangeSerializer(serializers.ModelSerializer):
             **validated_data,
         )
         obj.save()  # clean() 내부에서 전이 규칙/권한을 검증
+
+        if validated_data["status"] == "SIGNED":  # 실제 상태명에 맞게 수정
+            # 학생단체가 author인 경우
+            if proposal.author.user_role == User.Role.STUDENT_GROUP:
+                try:
+                    profile = proposal.author.student_group_profile.get()
+                    profile.partnership_count += 1
+                    profile.save()
+                except StudentGroupProfile.DoesNotExist:
+                    pass  # 프로필 없으면 무시
+
+            # 학생단체가 recipient인 경우
+            elif proposal.recipient.user_role == User.Role.STUDENT_GROUP:
+                try:
+                    profile = proposal.recipient.student_group_profile.get()
+                    profile.partnership_count += 1
+                    profile.save()
+                except StudentGroupProfile.DoesNotExist:
+                    pass
         return obj
