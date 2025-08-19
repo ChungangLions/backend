@@ -237,6 +237,7 @@ CORS_ALLOW_CREDENTIALS = True
 # 추후 프론트엔드에서 웹 페이지 배포 후 도메인 매핑했다면 해당 도메인 추가 필요
 CSRF_TRUSTED_ORIGINS = [
     "https://huniverse.p-e.kr",
+    "https://h-universe.netlify.app",
 ]
 CORS_ALLOWED_ORIGINS = [ 
     "http://localhost:3000",
