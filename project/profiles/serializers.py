@@ -63,16 +63,80 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("마진율은 0과 100 사이여야 합니다.")
         return value
     
+    def validate_partnership_goal(self, value):
+        """제휴 목표 JSONField 유효성 검사"""
+        # 문자열로 온 경우 JSON 파싱 시도
+        if isinstance(value, str):
+            try:
+                import json
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("제휴 목표는 유효한 JSON 리스트 형태여야 합니다.")
+        
+        if not isinstance(value, list):
+            raise serializers.ValidationError("제휴 목표는 리스트 형태여야 합니다.")
+        
+        if not value:
+            raise serializers.ValidationError("최소 하나 이상의 제휴 목표를 선택해야 합니다.")
+        
+        valid_choices = [choice[0] for choice in PartnershipGoal.choices]
+        for goal in value:
+            if goal not in valid_choices:
+                raise serializers.ValidationError(f"유효하지 않은 제휴 목표입니다: {goal}")
+        
+        return value
+    
+    def validate_available_service(self, value):
+        """제공 서비스 JSONField 유효성 검사"""
+        # 문자열로 온 경우 JSON 파싱 시도
+        if isinstance(value, str):
+            try:
+                import json
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("제공 서비스는 유효한 JSON 리스트 형태여야 합니다.")
+        
+        if not isinstance(value, list):
+            raise serializers.ValidationError("제공 서비스는 리스트 형태여야 합니다.")
+        
+        if not value:
+            raise serializers.ValidationError("최소 하나 이상의 제공 서비스를 선택해야 합니다.")
+        
+        valid_choices = [choice[0] for choice in Service.choices]
+        for service in value:
+            if service not in valid_choices:
+                raise serializers.ValidationError(f"유효하지 않은 제공 서비스입니다: {service}")
+        
+        return value
+    
     def validate_partnership_goal_other(self, value):
-        partnership_goal = self.initial_data.get('partnership_goal')
-        if partnership_goal == PartnershipGoal.OTHER and not value:
-            raise serializers.ValidationError("제휴 목표가 '기타'일 때는 상세 내용을 입력해야 합니다.")
+        partnership_goals = self.initial_data.get('partnership_goal', [])
+        
+        # 문자열로 온 경우 JSON 파싱
+        if isinstance(partnership_goals, str):
+            try:
+                import json
+                partnership_goals = json.loads(partnership_goals)
+            except json.JSONDecodeError:
+                partnership_goals = []
+                
+        if PartnershipGoal.OTHER in partnership_goals and not value:
+            raise serializers.ValidationError("제휴 목표에 '기타'가 포함될 때는 상세 내용을 입력해야 합니다.")
         return value
     
     def validate_available_service_other(self, value):
-        available_service = self.initial_data.get('available_service')
-        if available_service == Service.OTHER and not value:
-            raise serializers.ValidationError("추가 서비스가 '기타'일 때는 상세 내용을 입력해야 합니다.")
+        available_services = self.initial_data.get('available_service', [])
+        
+        # 문자열로 온 경우 JSON 파싱
+        if isinstance(available_services, str):
+            try:
+                import json
+                available_services = json.loads(available_services)
+            except json.JSONDecodeError:
+                available_services = []
+                
+        if Service.OTHER in available_services and not value:
+            raise serializers.ValidationError("제공 서비스에 '기타'가 포함될 때는 상세 내용을 입력해야 합니다.")
         return value
     
     def create(self, validated_data):
