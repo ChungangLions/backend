@@ -296,19 +296,64 @@ class ProposalViewSet(viewsets.ModelViewSet):
         )
         
     @swagger_auto_schema(
-        method='post',
-        operation_summary="(AI) 사장님 → 학생단체 제안서 자동 생성",
-        tags=["Proposals"],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=["recipient"],
-            properties={
-                "recipient": openapi.Schema(type=openapi.TYPE_INTEGER, description="학생단체(User.id)"),
-                "contact_info": openapi.Schema(type=openapi.TYPE_STRING, description="작성자 연락처(선택; 미지정 시 작성자 이메일 사용)"),
+    method='post',
+    operation_summary="(AI) 사장님 → 학생단체 제안서 자동 생성",
+    operation_description=(
+        "- 작성자가 반드시 사장님(OWNER)이어야 합니다.\n"
+        "- recipient는 학생단체(STUDENT_GROUP) 유저의 id여야 하며, contact_info는 미입력시 작성자의 이메일이 자동 저장됩니다.\n"
+        "- 작성자의 OwnerProfile 기반으로 AI가 제안서 초안을 생성합니다.\n"
+        "- 성공 시 생성된 제안서 객체를 반환합니다."
+    ),
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["recipient"],
+        properties={
+            "recipient": openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description="학생단체(User.id, 필수)"
+            ),
+            "contact_info": openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description="작성자 연락처(선택; 미입력 시 작성자 이메일 사용)"
+            ),
+        },
+        example={
+            "recipient": 42,
+            "contact_info": "010-xxxx-xxxx"
+        }
+    ),
+    responses={
+        201: openapi.Response(
+            "AI가 생성한 제안서 예시",
+            ProposalReadSerializer,
+            examples={
+                "application/json": {
+                    "id": 123,
+                    "title": "2025 중앙대학교 축제 협찬 제안",
+                    "content": "중앙대학교 축제에...",
+                    "author": 10,
+                    "recipient": 42,
+                    "contact_info": "010-xxxx-xxxx",
+                    "created_at": "2025-08-20T07:00:00Z",
+                    "status": "UNREAD",
+                }
             }
         ),
-        responses={201: ProposalReadSerializer()},
-        security=[{"Bearer": []}],
+        400: openapi.Response(
+            description="필수 파라미터 누락, 역할 불일치, 프로필 없음 등",
+            examples={"application/json": {"detail": "recipient는 필수입니다."}}
+        ),
+        403: openapi.Response(
+            description="작성자 권한 없음",
+            examples={"application/json": {"detail": "작성자는 사장님(OWNER)이어야 합니다."}}
+        ),
+        404: openapi.Response(
+            description="수신자 없음",
+            examples={"application/json": {"detail": "수신자(유저)가 존재하지 않습니다."}}
+        ),
+    },
+    security=[{"Bearer": []}],
+    tags=["Proposals"],
     )
     @action(detail=False, methods=['post'], url_path='ai-draft-to-student')
     def ai_draft_to_student(self, request):
