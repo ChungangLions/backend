@@ -225,7 +225,12 @@ SWAGGER_SETTINGS = {
     },
     # 선택: Try it out 시 content-type 기본값을 json으로
     "DEFAULT_MODEL_RENDERING": "example",
+    "DEFAULT_API_URL": "https://huniverse.p-e.kr"
 }
+# --- HTTPS 인식 강제 ---
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = True
 
 # 인증 관련 요청(쿠키, 세션 등)을 허용
 # 예를 들어 브라우저가 백엔드 서버로 쿠키를 전송하거나, 백엔드에서 쿠키를 응답으로 보낼 수 있음
