@@ -43,8 +43,7 @@ class OwnerProfileAdmin(admin.ModelAdmin):
         'photo_count', 'menu_count', 'created_at', 'contact'
     ]
     list_filter = [
-        'business_type', 'partnership_goal', 
-        'available_service', 'created_at'
+        'business_type', 'created_at'
     ]
     search_fields = [
         'profile_name', 'user__username', 'user__email',
