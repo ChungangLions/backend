@@ -263,6 +263,68 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         if obj is None:
             return Response({'status': 'unrecommended'}, status=status.HTTP_200_OK)
         return Response({'status': 'recommended', 'recommendation_id': obj.id}, status=status.HTTP_201_CREATED)
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="특정 유저가 받은 찜 수",
+        operation_description="유저 id 기준으로 받은 찜(Like) 개수를 반환합니다.",
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "user_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=7),
+                    "likes_received_count": openapi.Schema(type=openapi.TYPE_INTEGER, example=42),
+                }
+            ),
+            404: "Not Found",
+        },
+        tags=["Likes"],
+        operation_id="getLikesReceivedCount",
+    )
+    @action(
+        detail=True,
+        methods=['get'],
+        url_path='likes-received-count',
+        permission_classes=[permissions.AllowAny],  # 공개로 두고 싶다면
+    )
+    def likes_received_count(self, request, pk=None):
+        user = self.get_object()
+        # annotate가 이미 있으면 그대로 사용, 없으면 쿼리로 계산
+        cnt = getattr(user, "likes_received_count", None)
+        if cnt is None:
+            cnt = Like.objects.filter(target=user).count()
+        return Response({"user_id": user.id, "likes_received_count": cnt})
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="특정 유저가 받은 추천 수",
+        operation_description="유저 id 기준으로 받은 추천(Recommendation) 개수를 반환합니다.",
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "user_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=7),
+                    "recommendations_received_count": openapi.Schema(type=openapi.TYPE_INTEGER, example=12),
+                }
+            ),
+            404: "Not Found",
+        },
+        tags=["Recommendations"],
+        operation_id="getRecommendationsReceivedCount",
+    )
+    @action(
+        detail=True,
+        methods=['get'],
+        url_path='recommendations-received-count',
+        permission_classes=[permissions.AllowAny],  # 어느 유저가 로그인해도 공개로 설정
+    )
+    def recommendations_received_count(self, request, pk=None):
+        user = self.get_object()
+        # queryset에서 annotate 된 값이 있으면 사용, 없으면 직접 count
+        cnt = getattr(user, "recommendations_received_count", None)
+        if cnt is None:
+            cnt = Recommendation.objects.filter(to_user=user).count()
+        return Response({"user_id": user.id, "recommendations_received_count": cnt})
 
 
 class LikeViewSet(mixins.CreateModelMixin,
