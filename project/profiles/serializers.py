@@ -46,6 +46,18 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
     photos = OwnerPhotoSerializer(many=True, required=False)
     menus = MenuSerializer(many=True, required=False)
 
+    # JSONField를 명시적으로 정의
+    available_service = serializers.ListField(
+        child=serializers.CharField(),
+        required=True,
+        allow_empty=False
+    )
+    partnership_goal = serializers.ListField(
+        child=serializers.CharField(),
+        required=True,
+        allow_empty=False
+    )
+
     class Meta:
         model = OwnerProfile
         fields = [
