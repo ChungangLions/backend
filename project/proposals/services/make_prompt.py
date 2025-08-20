@@ -54,11 +54,15 @@ def generate_proposal_from_owner_profile(
     - contents는 100자 이내로 작성해. 내용은 주로 제휴 목적에 대한 내용이 들어가야 함. 사장님 profiles의 partnership_goal을 참고해. 만약 partnership_goal이 없다면 "제휴를 통해 상호 이익을 도모하고자 합니다."라고 작성해. 또한 partnership_goal_other의 내용이 있다면, 그 내용도 고려해서 작성해야 함.
     - expected_effects는 100자 이내로 작성해. 제휴를 통해 기대되는 효과를 간단히 작성해. 사장님 profiles의 margin_rate를 참고해서 averages_sales과 관련하여 예상 기대효과를 작성해줘. 너무 과장되게 쓰지 말고 현실적인 수치를 이용하는 것이 좋을 것 같음
     - partnership_type은 제휴 방식을 나타내는 거야. list 형태로 반환을 해야하는데 "할인형", "리뷰형", "서비스제공형", "타임형" 중 하나 이상을 선택해야 해. margin_rate가 30% 이상이 되는 경우 할인형을 선택하는 것이 좋겠고, 리뷰형은 리뷰를 작성해주는 조건이 필요해. 서비스제공형은 사장님이 제공하는 서비스가 있어야 하고, 타임형은 특정 시간대에만 적용되는 제휴야.
+    - partnership_type의 경우 사장님 프로필에서 partnership_goal도 고려하면 좋을 것 같아. input으로 들어오는 partnership_goal은 json 필드의 리스트로 들어오는데 들어올 수 있는 값이 정해져 있어.
+    - input으로 들어오는 partnership_goal은 "NEW_CUSTOMERS", "REVISIT", "CLEAR_STOCK" (이는 재고 정리를 의미), "SPREAD_PEAK" (이는 피크 타임 분산을 의미), "SNS_MARKETING", "COLLECT_REVIEWS", 그리고 "OTHER"중 하나 이상이 들어올 수 있어. 예를들어 partnership_goal이 "REVISIT"인 경우, 기존 고객 유치를 위한 제휴 방식을 고려해야 해. "OTHER"이 포함되어 있을 때에는 사장님 프로필의 partnership_goal_other도 고려하면 좋을 것 같아.
     - apply_target은 ALLOWED_APPLY_TARGETS 중 하나여야 해. 만약 "OTHER"를 선택했다면 apply_target_other에 이유를 간단히 적어야 해.
     - apply_target_other에는 사장님이 제휴를 원하는 구체적인 대상을 적어야 해. 100자 이내로 작성해주면 될거 같아. 필수로 작성할 필드는 아니고 apply_target에서 OTHER이 들어왔을 때만을 고려하면 될거 같아.
     - time_windows의 경우 제휴 적용 시간대를 나타내는 거야. 그렇다면 사장님 프로필에서 한산 시간대를 활용하는 것이 좋겠지. off_peak_time의 내용을 참고해. 주말과 평일 모두 포함하진 않아도 됨.
     - benefit_type은 ALLOWED_BENEFIT_TYPES 중 하나여야 해. 만약 "OTHER"를 선택했다면 benefit_description에 이유를 간단히 적어야 해.
     - apply_target이 "OTHER"면 apply_target_other에 간단히 이유를 적어.
+    - input으로 들어오는 available_service는 ["SIDE_MENU", "DRINK", "OTHERS"]와 같은 json list의 형태로 들어와. 입력으로 들어올 때는 해당 리스트의 원소 중에서 한 개 이상이 들어올거야.
+    - input으로 들어오는 available_service의 원소 중에서 OTHERS가 있다면 available_service_other의 내용도 읽어봐야 해. 이 내용은 사장님이 제공할 수 있는 추가 서비스를 조금 자세히 적은 경우야.
     - period_start와 period_end는 반드시 설정해, null이 될 수 없어. 그리고 사장님 프로필의 comment에 오래 협업하고 싶다는 내용이 있다면 period_start와 period_end를 적절히 길게 설정해.
     - contact_info 기본값으로 "{author_contact}"를 사용해.
 
@@ -69,8 +73,8 @@ def generate_proposal_from_owner_profile(
       "campus_name": "중앙대학교",
       "profile_name": "Middle Door",
       "business_type": "카페",
-      "partnership_goal": "상호 이익 도모와 장기적인 협력",
-      "partnership_goal_other": "",
+      "partnership_goal": ["REVISIT", "NEW_CUSTOMERS", "OTHER"],
+      "partnership_goal_other": "신메뉴가 나왔을 때도 대학생들의 의견을 먼저 들어보고 싶습니다.",
       "margin_rate": 45,
       "average_sales": 12000,
       "peak_time": [
@@ -80,7 +84,8 @@ def generate_proposal_from_owner_profile(
         {"days": ["월요일", "화요일"], "start": "10:00", "end": "12:00"},
         {"days": ["수요일", "목요일"], "start": "14:00", "end": "16:00"}
       ],
-      "service_provided": "음료 할인",
+      "available_service": ["SIDE_MENU", "DRINK"],
+      "available_service_other": "",
       "comment": "오래 협업하고 싶습니다."
     }
 
