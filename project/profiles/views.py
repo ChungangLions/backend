@@ -196,8 +196,9 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
                 else:
                     menus_data = []
 
-                profile.menus.all().delete()
+                # menus_data가 실제로 들어왔을 때만 기존 메뉴 삭제 + 갱신
                 if menus_data:
+                    profile.menus.all().delete()
                     if len(menus_data) > MAX_OWNER_MENUS:
                         return Response(
                             {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
