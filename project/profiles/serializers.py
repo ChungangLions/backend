@@ -100,13 +100,13 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
     
     def validate_available_service(self, value):
         """제공 서비스 JSONField 유효성 검사"""
-        # 문자열로 온 경우 JSON 파싱 시도
-        if isinstance(value, str):
-            try:
-                import json
-                value = json.loads(value)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError("제공 서비스는 유효한 JSON 리스트 형태여야 합니다.")
+        # # 문자열로 온 경우 JSON 파싱 시도
+        # if isinstance(value, str):
+        #     try:
+        #         import json
+        #         value = json.loads(value)
+        #     except json.JSONDecodeError:
+        #         raise serializers.ValidationError("제공 서비스는 유효한 JSON 리스트 형태여야 합니다.")
         
         if not isinstance(value, list):
             raise serializers.ValidationError("제공 서비스는 리스트 형태여야 합니다.")
