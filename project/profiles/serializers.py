@@ -269,7 +269,7 @@ class OwnerProfileForAISerializer(serializers.ModelSerializer):
     class Meta:
         model = OwnerProfile
         fields = (
-            'user.id', # 사장님 ID
+            'user', # 사장님 ID
             'campus_name', # 주변 대학교 이름
             'business_type', # 업종 ex) 카페, 주점
             'profile_name', # 가게 이름
