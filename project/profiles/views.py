@@ -193,6 +193,8 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
                         menus_data = []
                 elif isinstance(menus_data_raw, list):
                     menus_data = menus_data_raw
+                else:
+                    menus_data = []
 
                 profile.menus.all().delete()
                 if menus_data:
