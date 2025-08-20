@@ -59,14 +59,12 @@ class OwnerProfile(models.Model):
     )
 
     # 제휴 목표
-    partnership_goal = models.CharField(
-        max_length=20,
-        choices=PartnershipGoal.choices,
-        blank=False,            
-        db_index=True,                   
+    partnership_goal = models.JSONField(
+        default=list, blank=False,                             
         verbose_name='제휴 목표',
-        help_text='신규 고객 유입, 재방문 증가, 재고 소진, 피크타임 분산, SNS 홍보, 리뷰 확보, 기타 중 하나'
+        help_text='제휴 목표 리스트 예: ["NEW_CUSTOMERS", "REVISIT"]'
     )
+    
     partnership_goal_other = models.CharField(
         max_length=200, blank=True,
         verbose_name="기타 상세",
@@ -99,18 +97,15 @@ class OwnerProfile(models.Model):
     )
 
     # 추가 제공 가능 서비스
-    available_service = models.CharField(
-        max_length=20,
-        choices=Service.choices,
-        blank=False,             
-        db_index=True,                   
+    available_service = models.JSONField(
+        default=list, blank=False,                               
         verbose_name='추가 제공 가능 서비스',
         help_text='음료수, 사이드 메뉴, 기타 중 하나'
     )
     available_service_other = models.CharField(
         max_length=200, blank=True,
         verbose_name="기타 상세",
-        help_text='추가 제공 가능 서비스가 기타(OTHER)일 때 상세'
+        help_text='제공 가능 서비스 리스트 예: ["DRINK", "SIDE_MENU"]'
     )
 
     # 한줄소개
