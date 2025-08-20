@@ -181,29 +181,35 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
                     )
             
             # 메뉴 이미지 처리
-            menu_images = request.FILES.getlist('menus_images')
-            menus_data_raw = request.data.get('menus_data', [])
-            try:
-                menus_data = json.loads(menus_data_raw)
-            except json.JSONDecodeError:
+            if 'menus_data' in request.data:  # menus_data 키가 request에 존재하면
+                menu_images = request.FILES.getlist('menus_images')
+                menus_data_raw = request.data.get('menus_data')
+
                 menus_data = []
-            
-            profile.menus.all().delete()
-            if menus_data:
-                if len(menus_data) > MAX_OWNER_MENUS:
-                    return Response(
-                        {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                for idx, menu_data in enumerate(menus_data):
-                    menu_image = menu_images[idx] if (idx) < len(menu_images) else None
-                    Menu.objects.create(
-                        owner_profile=profile,
-                        name=menu_data.get('name'),
-                        price=menu_data.get('price'),
-                        image=menu_image,
-                        order=idx
-                    )
+                if isinstance(menus_data_raw, str):
+                    try:
+                        menus_data = json.loads(menus_data_raw)
+                    except json.JSONDecodeError:
+                        menus_data = []
+                elif isinstance(menus_data_raw, list):
+                    menus_data = menus_data_raw
+
+                profile.menus.all().delete()
+                if menus_data:
+                    if len(menus_data) > MAX_OWNER_MENUS:
+                        return Response(
+                            {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    for idx, menu_data in enumerate(menus_data):
+                        menu_image = menu_images[idx] if idx < len(menu_images) else None
+                        Menu.objects.create(
+                            owner_profile=profile,
+                            name=menu_data.get('name'),
+                            price=menu_data.get('price'),
+                            image=menu_image,
+                            order=idx
+                        )
 
             updated_profile = OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus').get(id=profile.id)
             return Response(
