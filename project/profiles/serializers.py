@@ -42,9 +42,6 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
     
 # --- 업체 프로필 생성/수정용 ---
 class OwnerProfileCreateSerializer(serializers.ModelSerializer):
-    
-    photos = OwnerPhotoSerializer(many=True, required=False)
-    menus = MenuSerializer(many=True, required=False)
 
     # JSONField를 명시적으로 정의
     available_service = serializers.ListField(
@@ -66,7 +63,8 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
             'available_service', 'available_service_other',
-            'photos', 'menus', 'comment', 'contact'
+            #'photos', 'menus', 
+            'comment', 'contact'
         ]
         read_only_fields = ['user']
         
@@ -77,13 +75,13 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
     
     def validate_partnership_goal(self, value):
         """제휴 목표 JSONField 유효성 검사"""
-        # 문자열로 온 경우 JSON 파싱 시도
-        if isinstance(value, str):
-            try:
-                import json
-                value = json.loads(value)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError("제휴 목표는 유효한 JSON 리스트 형태여야 합니다.")
+        # # 문자열로 온 경우 JSON 파싱 시도
+        # if isinstance(value, str):
+        #     try:
+        #         import json
+        #         value = json.loads(value)
+        #     except json.JSONDecodeError:
+        #         raise serializers.ValidationError("제휴 목표는 유효한 JSON 리스트 형태여야 합니다.")
         
         if not isinstance(value, list):
             raise serializers.ValidationError("제휴 목표는 리스트 형태여야 합니다.")

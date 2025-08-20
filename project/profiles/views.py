@@ -162,12 +162,12 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
         serializer = OwnerProfileCreateSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
             profile = serializer.save()
-
+ 
             # 대표 사진 업로드 처리
             photos = request.FILES.getlist('photos')
-            # 기존 사진 삭제
-            profile.photos.all().delete()
             if photos:
+                # 기존 사진 삭제
+                profile.photos.all().delete()
                 if len(photos) > MAX_OWNER_PHOTOS:
                     return Response(
                         {"message": f"대표 사진은 최대 {MAX_OWNER_PHOTOS}장까지 업로드할 수 있습니다."},
