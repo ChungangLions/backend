@@ -294,3 +294,69 @@ class ProposalViewSet(viewsets.ModelViewSet):
             ProposalReadSerializer(serializer.instance, context={"request": request}).data,
             status=status.HTTP_201_CREATED
         )
+        
+    @swagger_auto_schema(
+        method='post',
+        operation_summary="(AI) 사장님 → 학생단체 제안서 자동 생성",
+        tags=["Proposals"],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["recipient"],
+            properties={
+                "recipient": openapi.Schema(type=openapi.TYPE_INTEGER, description="학생단체(User.id)"),
+                "contact_info": openapi.Schema(type=openapi.TYPE_STRING, description="작성자 연락처(선택; 미지정 시 작성자 이메일 사용)"),
+            }
+        ),
+        responses={201: ProposalReadSerializer()},
+        security=[{"Bearer": []}],
+    )
+    @action(detail=False, methods=['post'], url_path='ai-draft-to-student')
+    def ai_draft_to_student(self, request):
+        """
+        - request.user: 작성자(사장님) - 작성자가 사장님이지만 제안서의 input으로 들어가는 데이터는 사장님의 프로필이다.
+        - recipient: 학생단체(User.id)
+        - AI 입력은 '작성자(사장님)의 OwnerProfile' 스냅샷을 사용
+        """
+        recipient_id = request.data.get("recipient")
+        if not recipient_id:
+            return Response({"detail": "recipient는 필수입니다."}, status=400)
+
+        # 수신자 존재/역할 체크
+        try:
+            recipient = User.objects.get(pk=recipient_id)
+        except User.DoesNotExist:
+            return Response({"detail": "수신자(유저)가 존재하지 않습니다."}, status=404)
+
+        # 학생단체 역할 확인 (❗ STUDENT_GROUP 이 맞습니다)
+        if recipient.user_role != User.Role.STUDENT_GROUP:
+            return Response({"detail": "수신자는 학생단체(STUDENT_GROUP)이어야 합니다."}, status=400)
+
+        # 작성자(사장님)의 OwnerProfile 스냅샷 추출 (수신자 아님!)
+        author = request.user
+        try:
+            profile_dict = get_owner_profile_snapshot_by_user_id(author.id)
+        except OwnerProfile.DoesNotExist:
+            return Response({"detail": "작성자(사장님)의 프로필이 없습니다."}, status=400)
+
+        # 작성자 정보
+        author = request.user
+        author_name = author.username or (author.email or "")
+        author_contact = request.data.get("contact_info") or author.email or ""
+
+        # GPT 호출 → 초안(JSON)
+        ai_dict = generate_proposal_from_owner_profile(
+            owner_profile=profile_dict,
+            author_name=author_name,
+            author_contact=author_contact,
+        )
+
+        # 서버에서 recipient 주입 후, 표준 WriteSerializer로 검증/생성
+        ai_dict["recipient"] = recipient_id
+        serializer = ProposalWriteSerializer(data=ai_dict, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            ProposalReadSerializer(serializer.instance, context={"request": request}).data,
+            status=status.HTTP_201_CREATED
+        )            
