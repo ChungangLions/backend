@@ -78,7 +78,7 @@ def generate_proposal_from_owner_profile(
     - contact_info: string (기본값은 위에 준 작성자 연락처)
     - apply_target: 허용 enum 중 하나
     - apply_target_other: string 또는 ""
-    - time_windows: object[]  // 형식: {"days":["월","화"], "start":"HH:MM", "end":"HH:MM"}
+    - time_windows: object[]  // 형식: {{"days":["월","화"], "start":"HH:MM", "end":"HH:MM"}}
     - benefit_type: 허용 enum 중 하나
     - benefit_description: string
     - period_start: "YYYY-MM-DD" 또는 null
