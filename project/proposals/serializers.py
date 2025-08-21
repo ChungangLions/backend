@@ -100,7 +100,6 @@ class ProposalWriteSerializer(serializers.ModelSerializer):
             "apply_target", "apply_target_other", "time_windows",
             "benefit_type", "benefit_description",
             "period_start", "period_end",
-            # "min_order_amount", "max_redemptions_per_user", "max_total_redemptions",
         ]
 
     # --- 공통 검증 ---
