@@ -31,122 +31,41 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'campus_name',
             'business_type', 'profile_name', 'business_day',
-            'partnership_goal', 'partnership_goal_other',
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
-            'available_service', 'available_service_other',
             'created_at', 'modified_at',
-            'photos', 'menus', 'comment', 'contact'
+            'photos', 'menus', 'comment', 'contact',
+            "service_drink", "service_side_menu", 
+            "service_other", "service_other_detail",
+            "goal_new_customers", "goal_revisit",
+            "goal_clear_stock", "goal_spread_peak",
+            "goal_sns_marketing", "goal_collect_reviews",
+            "goal_other", "goal_other_detail"
         ]
         read_only_fields = ['id', 'user', 'created_at', 'modified_at']
     
 # --- 업체 프로필 생성/수정용 ---
 class OwnerProfileCreateSerializer(serializers.ModelSerializer):
 
-    # JSONField를 명시적으로 정의
-    available_service = serializers.ListField(
-        child=serializers.CharField(),
-        required=True,
-        allow_empty=False
-    )
-    partnership_goal = serializers.ListField(
-        child=serializers.CharField(),
-        required=True,
-        allow_empty=False
-    )
-
     class Meta:
         model = OwnerProfile
         fields = [
             'user', 'business_type', 'profile_name', 'business_day',
-            'partnership_goal', 'partnership_goal_other', 'campus_name',
-            'average_sales', 'margin_rate',
-            'peak_time', 'off_peak_time',
-            'available_service', 'available_service_other',
-            #'photos', 'menus', 
-            'comment', 'contact'
+            'campus_name', 'average_sales', 'margin_rate',
+            'peak_time', 'off_peak_time', 
+            'comment', 'contact',
+            "service_drink", "service_side_menu", 
+            "service_other", "service_other_detail",
+            "goal_new_customers", "goal_revisit",
+            "goal_clear_stock", "goal_spread_peak",
+            "goal_sns_marketing", "goal_collect_reviews",
+            "goal_other", "goal_other_detail"
         ]
         read_only_fields = ['user']
         
     def validate_margin_rate(self, value):
         if value < 0 or value > 100:
             raise serializers.ValidationError("마진율은 0과 100 사이여야 합니다.")
-        return value
-    
-    def validate_partnership_goal(self, value):
-        """제휴 목표 JSONField 유효성 검사"""
-        # # 문자열로 온 경우 JSON 파싱 시도
-        # if isinstance(value, str):
-        #     try:
-        #         import json
-        #         value = json.loads(value)
-        #     except json.JSONDecodeError:
-        #         raise serializers.ValidationError("제휴 목표는 유효한 JSON 리스트 형태여야 합니다.")
-        
-        if not isinstance(value, list):
-            raise serializers.ValidationError("제휴 목표는 리스트 형태여야 합니다.")
-        
-        if not value:
-            raise serializers.ValidationError("최소 하나 이상의 제휴 목표를 선택해야 합니다.")
-        
-        valid_choices = [choice[0] for choice in PartnershipGoal.choices]
-        for goal in value:
-            if goal not in valid_choices:
-                raise serializers.ValidationError(f"유효하지 않은 제휴 목표입니다: {goal}")
-        
-        return value
-    
-    def validate_available_service(self, value):
-        """제공 서비스 JSONField 유효성 검사"""
-        # # 문자열로 온 경우 JSON 파싱 시도
-        # if isinstance(value, str):
-        #     try:
-        #         import json
-        #         value = json.loads(value)
-        #     except json.JSONDecodeError:
-        #         raise serializers.ValidationError("제공 서비스는 유효한 JSON 리스트 형태여야 합니다.")
-        
-        if not isinstance(value, list):
-            raise serializers.ValidationError("제공 서비스는 리스트 형태여야 합니다.")
-        
-        if not value:
-            raise serializers.ValidationError("최소 하나 이상의 제공 서비스를 선택해야 합니다.")
-        
-        valid_choices = [choice[0] for choice in Service.choices]
-        for service in value:
-            if service not in valid_choices:
-                raise serializers.ValidationError(f"유효하지 않은 제공 서비스입니다: {service}")
-        
-        return value
-    
-    def validate_partnership_goal_other(self, value):
-        partnership_goals = self.initial_data.get('partnership_goal', [])
-        
-        # 문자열로 온 경우 JSON 파싱
-        if isinstance(partnership_goals, str):
-            try:
-                import json
-                partnership_goals = json.loads(partnership_goals)
-            except json.JSONDecodeError:
-                partnership_goals = []
-                
-        if PartnershipGoal.OTHER in partnership_goals and not value:
-            raise serializers.ValidationError("제휴 목표에 '기타'가 포함될 때는 상세 내용을 입력해야 합니다.")
-        return value
-    
-    def validate_available_service_other(self, value):
-        available_services = self.initial_data.get('available_service', [])
-        
-        # 문자열로 온 경우 JSON 파싱
-        if isinstance(available_services, str):
-            try:
-                import json
-                available_services = json.loads(available_services)
-            except json.JSONDecodeError:
-                available_services = []
-                
-        if Service.OTHER in available_services and not value:
-            raise serializers.ValidationError("제공 서비스에 '기타'가 포함될 때는 상세 내용을 입력해야 합니다.")
         return value
     
     def create(self, validated_data):

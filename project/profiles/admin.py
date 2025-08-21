@@ -37,20 +37,27 @@ class MenuInline(admin.TabularInline):
 @admin.register(OwnerProfile)
 class OwnerProfileAdmin(admin.ModelAdmin):
     list_display = [
-        'profile_name', 'user', 'business_type', 
-        'campus_name', 'partnership_goal', 
+        'profile_name', 'user', 'business_type',
+        'campus_name',
+        'get_partnership_goals',   # ← 요약 표시 (신규/재방문/…/기타)
+        'get_services',            # ← 요약 표시 (음료/사이드/기타)
         'average_sales', 'margin_rate',
         'photo_count', 'menu_count', 'created_at', 'contact'
     ]
     list_filter = [
-        'business_type', 'created_at'
+        'business_type',
+        'goal_new_customers', 'goal_revisit', 'goal_clear_stock',
+        'goal_spread_peak', 'goal_sns_marketing', 'goal_collect_reviews',
+        'goal_other',
+        'service_drink', 'service_side_menu', 'service_other',
+        'created_at',
     ]
     search_fields = [
         'profile_name', 'user__username', 'user__email',
         'campus_name', 'comment', 'contact'
     ]
     readonly_fields = ['created_at', 'modified_at']
-    
+
     fieldsets = (
         ('기본 정보', {
             'fields': ('user', 'profile_name', 'campus_name', 'business_type', 'comment', 'contact')
@@ -58,10 +65,17 @@ class OwnerProfileAdmin(admin.ModelAdmin):
         ('영업 정보', {
             'fields': ('business_day', 'peak_time', 'off_peak_time')
         }),
-        ('제휴 정보', {
+        ('제휴 목표', {
             'fields': (
-                'partnership_goal', 'partnership_goal_other',
-                'available_service', 'available_service_other'
+                'goal_new_customers', 'goal_revisit', 'goal_clear_stock',
+                'goal_spread_peak', 'goal_sns_marketing', 'goal_collect_reviews',
+                'goal_other', 'goal_other_detail',
+            )
+        }),
+        ('제공 서비스', {
+            'fields': (
+                'service_drink', 'service_side_menu',
+                'service_other', 'service_other_detail',
             )
         }),
         ('재정 정보', {
@@ -72,8 +86,30 @@ class OwnerProfileAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
-    
+
     inlines = [OwnerPhotoInline, MenuInline]
+    
+    def get_partnership_goals(self, obj):
+        goals = []
+        if obj.goal_new_customers: goals.append("신규")
+        if obj.goal_revisit: goals.append("재방문")
+        if obj.goal_clear_stock: goals.append("재고")
+        if obj.goal_spread_peak: goals.append("피크분산")
+        if obj.goal_sns_marketing: goals.append("SNS")
+        if obj.goal_collect_reviews: goals.append("리뷰")
+        if obj.goal_other:
+            goals.append(f"기타:{(obj.goal_other_detail or '').strip()}")
+        return ", ".join(goals) if goals else "-"
+    get_partnership_goals.short_description = "제휴 목표"
+
+    def get_services(self, obj):
+        svcs = []
+        if obj.service_drink: svcs.append("음료")
+        if obj.service_side_menu: svcs.append("사이드")
+        if obj.service_other:
+            svcs.append(f"기타:{(obj.service_other_detail or '').strip()}")
+        return ", ".join(svcs) if svcs else "-"
+    get_services.short_description = "제공 서비스"
     
     def photo_count(self, obj):
         return obj.photos.count()

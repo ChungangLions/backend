@@ -158,11 +158,13 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
         profile = self.get_object(pk)
         
         self.check_object_permissions(request, profile)
-        
+
+        # 요청 데이터 타입 확인
         serializer = OwnerProfileCreateSerializer(profile, data=request.data, partial=True)
         if serializer.is_valid():
+            # 검증된 데이터 확인
             profile = serializer.save()
- 
+
             # 대표 사진 업로드 처리
             photos = request.FILES.getlist('photos')
             if photos:
@@ -198,12 +200,12 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
 
                 # menus_data가 실제로 들어왔을 때만 기존 메뉴 삭제 + 갱신
                 if menus_data:
-                    profile.menus.all().delete()
                     if len(menus_data) > MAX_OWNER_MENUS:
                         return Response(
                             {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
+                    profile.menus.all().delete()
                     for idx, menu_data in enumerate(menus_data):
                         menu_image = menu_images[idx] if idx < len(menu_images) else None
                         Menu.objects.create(
@@ -213,6 +215,14 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
                             image=menu_image,
                             order=idx
                         )
+            
+            # ---- 기본 대표 사진 자동 생성 ----
+            if profile.photos.count() == 0:
+                OwnerPhoto.objects.create(
+                    owner_profile=profile,
+                    image=settings.DEFAULT_OWNER_PHOTO_PATH,
+                    order=0
+                )
 
             updated_profile = OwnerProfile.objects.select_related('user').prefetch_related('photos', 'menus').get(id=profile.id)
             return Response(
@@ -372,7 +382,7 @@ class StudentGroupProfileDetailView(BaseDetailMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 # ------ 학생 프로필 관련 Views ------
-class StudentProfileListCreateView(BaseDetailMixin, APIView):
+class StudentProfileListCreateView(BaseProfileMixin, APIView):
     """학생 프로필 목록 조회 및 생성""" 
     @swagger_auto_schema(
         operation_summary="학생 프로필 목록 조회",
