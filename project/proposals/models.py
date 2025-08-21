@@ -96,10 +96,6 @@ class Proposal(models.Model):
     period_start = models.DateField(null=True, blank=True, verbose_name='제휴 시작일')
     period_end   = models.DateField(null=True, blank=True, verbose_name='제휴 종료일')
 
-    # min_order_amount        = models.PositiveIntegerField(null=True, blank=True, verbose_name='최소 결제 금액(원)')
-    # max_redemptions_per_user = models.PositiveIntegerField(null=True, blank=True, verbose_name='1인 최대 사용 횟수')
-    # max_total_redemptions    = models.PositiveIntegerField(null=True, blank=True, verbose_name='전체 최대 사용 횟수')
-
     # 시간 (제휴 제안서의 생성 및 수정 시각) ->> 생성일자를 기준으로 목록 정렬에 사용
     # 수정일자는 자동으로 갱신됨
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일자')
