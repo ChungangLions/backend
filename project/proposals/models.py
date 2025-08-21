@@ -69,9 +69,6 @@ class Proposal(models.Model):
         max_length=40, blank=True, db_index=True,
         verbose_name='적용 대상'
     )
-    # apply_target_other = models.CharField(
-    #     max_length=200, blank=True, verbose_name='적용 대상(기타 상세)'
-    # )
 
     # 시간대는 유연하게 JSON 사용
     # 예: [{"days":["Mon","Tue"],"start":"14:00","end":"17:00"}]
