@@ -37,7 +37,7 @@ class MenuInline(admin.TabularInline):
 @admin.register(OwnerProfile)
 class OwnerProfileAdmin(admin.ModelAdmin):
     list_display = [
-        'profile_name', 'user', 'business_type',
+        'profile_name', 'user', 'get_business_type_display',
         'campus_name',
         'get_partnership_goals',   # ← 요약 표시 (신규/재방문/…/기타)
         'get_services',            # ← 요약 표시 (음료/사이드/기타)
@@ -60,7 +60,7 @@ class OwnerProfileAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('기본 정보', {
-            'fields': ('user', 'profile_name', 'campus_name', 'business_type', 'comment', 'contact')
+            'fields': ('user', 'profile_name', 'campus_name', 'business_type', 'business_type_other', 'comment', 'contact')
         }),
         ('영업 정보', {
             'fields': ('business_day', 'peak_time', 'off_peak_time')
@@ -89,6 +89,12 @@ class OwnerProfileAdmin(admin.ModelAdmin):
 
     inlines = [OwnerPhotoInline, MenuInline]
     
+    def get_business_type_display(self, obj):
+        if obj.business_type == 'OTHER' and obj.business_type_other:
+            return f"기타 ({obj.business_type_other})"
+        return obj.get_business_type_display()
+    get_business_type_display.short_description = "업종"
+
     def get_partnership_goals(self, obj):
         goals = []
         if obj.goal_new_customers: goals.append("신규")

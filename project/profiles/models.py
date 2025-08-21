@@ -15,6 +15,7 @@ class BusinessType(models.TextChoices):
         RESTAURANT = 'RESTAURANT', '식당'
         CAFE = 'CAFE', '카페'
         BAR = 'BAR', '주점'
+        OTHER = "OTHER", '기타'
 
 class Service(models.TextChoices):
         SIDE_MENU = 'SIDE_MENU', '사이드 메뉴'
@@ -47,6 +48,11 @@ class OwnerProfile(models.Model):
         db_index=True,                   
         verbose_name='업종',
         help_text='식당, 카페, 주점 중 하나'
+    )
+    business_type_other = models.CharField(
+        max_length=20, default="",
+        blank=True,                              
+        verbose_name='기타 업종 상세',
     )
 
     # 가게명
