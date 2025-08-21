@@ -53,7 +53,7 @@ class ProposalAdmin(admin.ModelAdmin):
             "fields": ("author", "recipient",
                        "sender_name", "recipient_display_name", "contact_info")
         }),
-        ("본문", {"fields": ("expected_effects")}),
+        ("본문", {"fields": ("expected_effects",)}),
         ("제휴 조건", {
             "fields": (
                 "apply_target",
