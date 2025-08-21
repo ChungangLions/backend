@@ -305,7 +305,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         },
         example={
             "recipient": 42,
-            "contact_info": "010-xxxx-xxxx"
+            "contact_info": "010-xxxx-xxxx 혹은 비어있는 string"
         }
     ),
     responses={
@@ -315,8 +315,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             examples={
                 "application/json": {
                     "id": 123,
-                    "title": "2025 중앙대학교 축제 협찬 제안",
-                    "content": "중앙대학교 축제에...",
                     "author": 10,
                     "recipient": 42,
                     "contact_info": "010-xxxx-xxxx",
