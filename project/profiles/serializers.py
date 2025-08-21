@@ -30,7 +30,7 @@ class OwnerProfileSerializer(serializers.ModelSerializer):
         model = OwnerProfile
         fields = [
             'id', 'user', 'campus_name',
-            'business_type', 'profile_name', 'business_day',
+            'business_type', 'business_type_other', 'profile_name', 'business_day',
             'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time',
             'created_at', 'modified_at',
@@ -50,7 +50,7 @@ class OwnerProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = OwnerProfile
         fields = [
-            'user', 'business_type', 'profile_name', 'business_day',
+            'user', 'business_type', 'business_type_other', 'profile_name', 'business_day',
             'campus_name', 'average_sales', 'margin_rate',
             'peak_time', 'off_peak_time', 
             'comment', 'contact',
