@@ -191,14 +191,24 @@ class OwnerProfileForAISerializer(serializers.ModelSerializer):
             'business_type', # 업종 ex) 카페, 주점
             'profile_name', # 가게 이름
             'business_day', # 영업일 예: {"월": ["09:00-15:00"], "수": ["18:00-24:00"]}
-            'partnership_goal', # 제휴 목표 -> JSON 필드로 입력 받기
-            'partnership_goal_other', # 제휴 목표 (기타), 없으면 빈 문자열
+            # 제휴 목표 7가지 (goal_other == True일 시 goal_other_detail을 무조건 작성해야함)
+            'goal_new_customers',
+            'goal_revisit',
+            'goal_clear_stock',
+            'goal_spread_peak',
+            'goal_sns_marketing',
+            'goal_collect_reviews',
+            'goal_other',
+            'goal_other_detail',
             'average_sales', # 인당 평균 매출
             'margin_rate', # 마진율
             'peak_time', # 피크 타임
             'off_peak_time', # 한산 시간대
-            'available_service', # 제공 서비스 -> JSON 필드로 입력 받기
-            'available_service_other', # 제공 서비스 (기타), 없으면 빈 문자열
+            # 제공 가능 서비스 종류 3가지 (service_other_detail == True일 시 service_other_detail를 무조건 작성해야함)
+            'service_drink',
+            'service_side_menu',
+            'service_other',
+            'service_other_detail',
             'comment', # 한줄 소개
         )
         read_only_fields = fields
