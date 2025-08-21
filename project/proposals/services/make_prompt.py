@@ -1,5 +1,4 @@
 import json
-import os
 from textwrap import dedent
 from openai import OpenAI
 
