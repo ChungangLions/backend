@@ -59,16 +59,18 @@ class OwnerProfile(models.Model):
     )
 
     # 제휴 목표
-    partnership_goal = models.JSONField(
-        default=list, blank=False,                             
-        verbose_name='제휴 목표',
-        help_text='제휴 목표 리스트 예: ["NEW_CUSTOMERS", "REVISIT"]'
-    )
-    
-    partnership_goal_other = models.CharField(
-        max_length=200, blank=True,
-        verbose_name="기타 상세",
-        help_text='제휴 목표가 기타(OTHER)일 때 상세'
+    goal_new_customers = models.BooleanField(default=False, verbose_name="신규 고객 유입")
+    goal_revisit = models.BooleanField(default=False, verbose_name="재방문 증가")
+    goal_clear_stock = models.BooleanField(default=False, verbose_name="재고 소진")
+    goal_spread_peak = models.BooleanField(default=False, verbose_name="피크타임 분산")
+    goal_sns_marketing = models.BooleanField(default=False, verbose_name="SNS 홍보")
+    goal_collect_reviews = models.BooleanField(default=False, verbose_name="리뷰 확보")
+    goal_other = models.BooleanField(default=False, verbose_name="기타")
+    goal_other_detail = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name="기타 상세"
     )
 
     # 평균 인당 매출
@@ -96,16 +98,17 @@ class OwnerProfile(models.Model):
         help_text = '요일별 시간대 배열 JSON' # 예: {"주말": ["09:00-15:00"], "평일": ["18:00-24:00"]}
     )
 
+
+    
     # 추가 제공 가능 서비스
-    available_service = models.JSONField(
-        default=list, blank=False,                               
-        verbose_name='추가 제공 가능 서비스',
-        help_text='음료수, 사이드 메뉴, 기타 중 하나'
-    )
-    available_service_other = models.CharField(
-        max_length=200, blank=True,
-        verbose_name="기타 상세",
-        help_text='제공 가능 서비스 리스트 예: ["DRINK", "SIDE_MENU"]'
+    service_drink = models.BooleanField(default=False, verbose_name="음료수 제공")
+    service_side_menu = models.BooleanField(default=False, verbose_name="사이드 메뉴 제공")
+    service_other = models.BooleanField(default=False, verbose_name="기타 서비스 제공")
+    service_other_detail = models.CharField(
+        max_length=200,
+        default="",
+        blank=True,
+        verbose_name="기타 서비스 상세"
     )
 
     # 한줄소개
@@ -249,13 +252,6 @@ class StudentProfile(models.Model):
         max_length = 100, blank=True, null=True,
         verbose_name="대학교명",
         help_text="검색으로 선택한 캠퍼스명"
-    )
-
-    # 사진
-    image =  models.ImageField(
-        upload_to="student_profile/image/",
-        blank=True,
-        null=True
     )
 
     def __str__(self):
