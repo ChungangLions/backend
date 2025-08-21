@@ -35,12 +35,12 @@ class LatestStatusFilter(admin.SimpleListFilter):
 @admin.register(Proposal)
 class ProposalAdmin(admin.ModelAdmin):
     list_display = (
-        "id", "title", "author", "recipient",
+        "id", "author", "recipient",
         "current_status_admin", "created_at",
     )
     list_select_related = ("author", "recipient")
     list_filter = ("author__user_role", "recipient__user_role", LatestStatusFilter)
-    search_fields = ("title", "author__username", "recipient__username", "contact_info")
+    search_fields = ("author__username", "recipient__username", "contact_info")
     ordering = ("-created_at",)
     date_hierarchy = "created_at"
 
@@ -50,17 +50,16 @@ class ProposalAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("기본 정보", {
-            "fields": ("title", "author", "recipient",
+            "fields": ("author", "recipient",
                        "sender_name", "recipient_display_name", "contact_info")
         }),
-        ("본문", {"fields": ("contents", "expected_effects")}),
+        ("본문", {"fields": ("expected_effects",)}),
         ("제휴 조건", {
             "fields": (
-                "apply_target", "apply_target_other",
-                "benefit_type", "benefit_description",
+                "apply_target",
+                "benefit_description",
                 "time_windows", "partnership_type",
                 "period_start", "period_end",
-                # "min_order_amount", "max_redemptions_per_user", "max_total_redemptions",
             )
         }),
         ("메타", {"fields": ("created_at", "modified_at")}),
@@ -118,7 +117,6 @@ class ProposalStatusAdmin(admin.ModelAdmin):
     list_select_related = ("proposal", "changed_by")
     list_filter = ("status",)
     search_fields = (
-        "proposal__title",
         "proposal__author__username",
         "proposal__recipient__username",
         "changed_by__username",

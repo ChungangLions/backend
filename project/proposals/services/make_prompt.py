@@ -1,16 +1,12 @@
 import json
 import os
 from textwrap import dedent
-from openai import OpenAI  # pip install openai>=1.0
+from openai import OpenAI
 
 from config.settings import get_secret
-from proposals.models import ApplyTarget, BenefitType
 
-OPENAI_API_KEY = get_secret("OPEN_API_SECRET_KEY")  # 또는 settings/get_secret 사용
+OPENAI_API_KEY = get_secret("OPEN_API_SECRET_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
-
-ALLOWED_APPLY_TARGETS = [c for c, _ in ApplyTarget.choices]
-ALLOWED_BENEFIT_TYPES  = [c for c, _ in BenefitType.choices]
 
 def _j(obj):  # JSON pretty string (한글 보존)
     return json.dumps(obj, ensure_ascii=False, indent=2)
@@ -38,64 +34,57 @@ def generate_proposal_from_owner_profile(
         "campus_name": "중앙대학교",
         "profile_name": "Middle Door",
         "business_type": "카페",
-        "partnership_goal": ["REVISIT", "NEW_CUSTOMERS", "OTHER"],
-        "partnership_goal_other": "신메뉴 의견을 먼저 듣고 싶습니다.",
+        "business_day": [{"월": ["09:00-21:00"], "화": ["09:00-21:00"], "수": ["09:00-21:00"], "목": ["09:00-21:00"], "금": ["09:00-21:00"], "토": ["10:00-17:00"]}],
+        "goal_new_customers": True,
+        "goal_revisit": False,
+        "goal_clear_stock": False,
+        "goal_spread_peak": False,
+        "goal_sns_marketing": False,
+        "goal_collect_reviews": False,
+        "goal_other": False,
+        "goal_other_detail": "",
         "margin_rate": 45,
         "average_sales": 12000,
-        "peak_time": [{"days": ["금요일", "토요일"], "start": "14:00", "end": "16:00"}],
+        "peak_time": [{"주말": ["13:00-15:00"], "평일": ["09:00-11:00"]}],
         "off_peak_time": [
-            {"days": ["월요일", "화요일"], "start": "10:00", "end": "12:00"},
-            {"days": ["수요일", "목요일"], "start": "14:00", "end": "16:00"},
+            {"주말": ["09:00-11:00"], "평일": ["18:00-21:00"]}
         ],
-        "available_service": ["SIDE_MENU", "DRINK"],
-        "available_service_other": "",
+        "service_drink": True,
+        "service_side_menu": True,
+        "service_other": False,
+        "service_other_detail": "",
         "comment": "오래 협업하고 싶습니다.",
     }
     example_output = {
-        "title": "카페 'Middle Door' 제휴 요청 제안서",
-        "contents": "제휴를 통해 상호 이익을 도모하고 장기 고객 유치를 추진하고자 합니다.",
         "expected_effects": "합리적 할인과 시간대 최적화로 약 10% 매출 증대를 기대합니다.",
         "partnership_type": ["할인형"],
         "contact_info": author_contact,
-        "apply_target": "STUDENTS",
-        "apply_target_other": "",
+        "apply_target": "학생회에 속한 모든 인원 및 관련 학과 학생 전부",
         "time_windows": [{"days": ["금요일", "토요일"], "start": "14:00", "end": "16:00"}],
-        "benefit_type": "PERCENT_DISCOUNT",
         "benefit_description": "음료 10% 할인",
         "period_start": "2025-10-01",
         "period_end": "2025-12-31",
     }
 
-    allowed_targets = _j(ALLOWED_APPLY_TARGETS)
-    allowed_benefits = _j(ALLOWED_BENEFIT_TYPES)
-
     rules = dedent("""
     반환 JSON 스키마(키만 허용):
-    - title: string (30자 이내, 업종+상호 조합)
-    - contents: string (100자 이내, partnership_goal/other 반영)
     - expected_effects: string (100자 이내, margin_rate/average_sales 참고)
-    - partnership_type: string[] (["할인형","리뷰형","서비스제공형","타임형"] 중 하나 이상)
+    - partnership_type: string[] (["할인형","리뷰형","서비스제공형","타임형"] 중 하나 이상), 마진율이 30% 이상이면 할인형을 고려하는 것처럼 입력 요소를 기준으로 합리적인 추론 부탁
     - contact_info: string (기본값은 위에 준 작성자 연락처)
-    - apply_target: 허용 enum 중 하나
-    - apply_target_other: string 또는 ""
-    - time_windows: object[]  // 형식: {{"days":["월","화"], "start":"HH:MM", "end":"HH:MM"}}
-    - benefit_type: 허용 enum 중 하나
-    - benefit_description: string
+    - apply_target: string (제안서를 작성하는 대상이 사장님이라면, 대학생들 혹은 학생회에 속한 대상을 위주로 작성, 만약 작성자가 학생회라면 마찬가지로 학생회를 위주로 작성하면 좋을 것 같음)
+    - time_windows: object[]  // 형식: {{"days":["월요일","화요일"], "start":"HH:MM", "end":"HH:MM"}}
+    - benefit_description: string (30자 이내로 짧게 어떠한 혜택을 제공하는지 작성하면 됨)
     - period_start: "YYYY-MM-DD" 또는 null
     - period_end:   "YYYY-MM-DD" 또는 null
 
     주의:
     - "recipient" 키는 절대 포함하지 마(서버에서 채움)
     - off_peak_time를 우선 고려해 time_windows를 제안
-    - available_service에 OTHERS가 포함되면 available_service_other 설명 반영
     """)
 
     user = (
         f"[작성자 이름]: {author_name}\n"
         f"[작성자 연락처 기본값]: {author_contact}\n\n"
-        "[허용 enum]\n"
-        f"- apply_target: {allowed_targets}\n"
-        f"- benefit_type: {allowed_benefits}\n\n"
         "[업체 프로필(JSON)]\n" + _j(owner_profile) + "\n\n"
         "[출력 형식 규칙]\n" + rules + "\n"
         "[입력 예시]\n" + _j(example_input) + "\n\n"
