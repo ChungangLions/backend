@@ -6,7 +6,7 @@ from rest_framework import serializers
 from accounts.models import User
 from .models import (
     Proposal, ProposalStatus,
-    ApplyTarget, BenefitType,
+    ApplyTarget
 )
 
 from profiles.models import StudentGroupProfile
@@ -35,8 +35,6 @@ class ProposalReadSerializer(serializers.ModelSerializer):
     author = MiniUserSerializer(read_only=True)
     recipient = MiniUserSerializer(read_only=True)
     current_status = serializers.SerializerMethodField()
-    greeting = serializers.SerializerMethodField()
-    closing = serializers.SerializerMethodField()
     status_history = ProposalStatusReadSerializer(many=True, read_only=True)
     is_editable = serializers.ReadOnlyField()
     is_partnership_made = serializers.ReadOnlyField()
@@ -49,35 +47,28 @@ class ProposalReadSerializer(serializers.ModelSerializer):
             # 스냅샷(표시용)
             "sender_name", "recipient_display_name",
             # 본문
-            "title", "contents", "expected_effects", "partnership_type",
+            "expected_effects", "partnership_type",
             # 연락
             "contact_info",
             # 제휴 조건
-            "apply_target", "apply_target_other", "time_windows",
-            "benefit_type", "benefit_description",
+            "apply_target", "time_windows",
+            "benefit_description",
             "period_start", "period_end",
-            # "min_order_amount", "max_redemptions_per_user", "max_total_redemptions",
             # 계산/메타
-            "current_status", "greeting", "closing", "status_history",
+            "current_status",  "status_history",
             "is_editable", "is_partnership_made",
             "created_at", "modified_at",
         ]
         read_only_fields = [
             "id", "author", "recipient",
             "sender_name", "recipient_display_name",
-            "current_status", "greeting", "closing", "status_history",
+            "current_status", "status_history",
             "is_editable", "is_partnership_made",
             "created_at", "modified_at",
         ]
 
     def get_current_status(self, obj):
         return obj.current_status
-
-    def get_greeting(self, obj):
-        return obj.build_greeting()
-
-    def get_closing(self, obj):
-        return obj.build_closing()
 
 
 # ---- 제안서(Write: 생성/수정) ----
@@ -93,12 +84,12 @@ class ProposalWriteSerializer(serializers.ModelSerializer):
         fields = [
             "recipient",
             # 본문
-            "title", "contents", "expected_effects", "partnership_type",
+            "expected_effects", "partnership_type",
             # 연락
             "contact_info",
             # 제휴 조건
-            "apply_target", "apply_target_other", "time_windows",
-            "benefit_type", "benefit_description",
+            "apply_target", "time_windows",
+            "benefit_description",
             "period_start", "period_end",
         ]
 
@@ -123,10 +114,6 @@ class ProposalWriteSerializer(serializers.ModelSerializer):
         # 자기 자신 금지
         if author.pk == recipient.pk:
             raise serializers.ValidationError({"recipient": _("자기 자신에게 제안서를 보낼 수 없습니다.")})
-
-        # 기타 상세 필수
-        if attrs.get("apply_target") == ApplyTarget.OTHER and not attrs.get("apply_target_other"):
-            raise serializers.ValidationError({"apply_target_other": _("적용 대상이 기타일 때 상세를 입력하세요.")})
 
         # 기간 검증
         ps, pe = attrs.get("period_start"), attrs.get("period_end")
