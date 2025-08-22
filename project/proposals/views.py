@@ -12,6 +12,7 @@ from .serializers import (
     ProposalReadSerializer,
     ProposalWriteSerializer,
     ProposalStatusChangeSerializer,
+    ProposalSentListSerializer
 )
 
 # GPT를 이용한 제안서 생성 서비스
@@ -415,3 +416,40 @@ class ProposalViewSet(viewsets.ModelViewSet):
             ProposalReadSerializer(serializer.instance, context={"request": request}).data,
             status=status.HTTP_201_CREATED
         )            
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="특정 유저가 보낸(작성한) 제안서 목록",
+        operation_description="경로의 user_id가 작성자인 제안서들을 작성일 내림차순으로 반환합니다.",
+        responses={200: ProposalSentListSerializer(many=True)},
+        tags=["Proposals"],
+        manual_parameters=[
+            openapi.Parameter(
+                name="user_id",
+                in_=openapi.IN_PATH,
+                description="작성자(User) ID",
+                type=openapi.TYPE_INTEGER,
+                required=True,
+            ),
+        ],
+        security=[{"Bearer": []}],
+    )
+    @action(detail=False, methods=["get"], url_path=r"send/(?P<user_id>\d+)",
+            permission_classes=[permissions.IsAuthenticated])
+    def sent_by_user(self, request, user_id=None):
+        # 유저 검증 (존재하지 않으면 404)
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "해당 사용자가 존재하지 않습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 해당 유저가 작성한 제안서만 (최신순)
+        qs = (
+            Proposal.objects
+            .filter(author=user)
+            .only("id", "partnership_type", "created_at", "modified_at")
+            .order_by("-created_at")
+        )
+
+        data = ProposalSentListSerializer(qs, many=True).data
+        return Response(data, status=status.HTTP_200_OK)
