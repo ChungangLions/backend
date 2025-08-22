@@ -74,12 +74,15 @@ def generate_proposal_from_owner_profile(
     - apply_target: string (제안서를 작성하는 대상이 사장님이라면, 대학생들 혹은 학생회에 속한 대상을 위주로 작성, 만약 작성자가 학생회라면 마찬가지로 학생회를 위주로 작성하면 좋을 것 같음)
     - time_windows: object[]  // 형식: {{"days":["월요일","화요일"], "start":"HH:MM", "end":"HH:MM"}}
     - benefit_description: string (30자 이내로 짧게 어떠한 혜택을 제공하는지 작성하면 됨)
-    - period_start: "YYYY-MM-DD" 또는 null
-    - period_end:   "YYYY-MM-DD" 또는 null
+    - period_start: "YYYY-MM-DD" 또는 null (제안서가 시작되는 날짜, period_start는 최대한 null을 피하고 제안서를 생성한 이후 1~2일 이후로 시작 날짜를 설정하는 것이 좋을 것으로 생각 됨.)
+    - period_end:   "YYYY-MM-DD" 또는 null (제안서가 종료되는 날짜, null이면 기간 없음)
 
     주의:
     - "recipient" 키는 절대 포함하지 마(서버에서 채움)
     - off_peak_time를 우선 고려해 time_windows를 제안
+    - period_start는 최대한 null을 피하고 제안서를 생성한 이후 1~2일 이후로 시작 날짜를 설정하는 것이 좋을 것으로 생각 됨.
+    - period_end는 제휴하고자하는 기간의 영향을 많이 받게 되는데, 사장님 혹은 학생단체가 제휴 기간을 길게 잡고자 한다면 3개월 이상으로 설정하고, 그렇지 않는다면 14일 이내로 기간을 설정하자
+    - period_end는 period_start보다 빠를 수는 없다는 것을 명심했으면 좋겠음.
     """)
 
     user = (
