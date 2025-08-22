@@ -235,7 +235,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='ai-draft')
     def ai_draft(self, request):
         """
-        - request.user: 작성자(학생단체 or 사장님)
+        - request.user: 작성자(학생단체)
         - recipient: 사장님(User.id) — 이 사장님의 OwnerProfile을 읽어 제안서 초안 생성
         """
         recipient_id = request.data.get("recipient")
@@ -258,7 +258,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except OwnerProfile.DoesNotExist:
             return Response({"detail": "수신자 사장님의 프로필이 없습니다."}, status=400)
 
-        # 작성자 정보
+
+        # 작성자의 정보에서 author_contact를 profiles에서 id랑 매칭 후 가져와야함.
+        # 작성자 정보 (작성자는 여기선 학생단체임)
         author = request.user
         author_name = author.username or (author.email or "")
         author_contact = request.data.get("contact_info") or author.email or ""

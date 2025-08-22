@@ -53,9 +53,7 @@ class Proposal(models.Model):
     recipient_display_name = models.CharField(max_length=100, blank=True, verbose_name='수신자 표시명(스냅샷)')
 
     # 제안 본문
-    # title = models.CharField(max_length=120, verbose_name='제안 제목') # -> 필요 없음
-    # contents = models.TextField(verbose_name='요청 개요') # -> 필요 없음
-    expected_effects = models.TextField(blank=True, verbose_name='기대 효과') # -> null 허용으로 수정
+    expected_effects = models.TextField(blank=True, verbose_name='기대 효과')
     partnership_type = models.JSONField(default = list, blank=True, verbose_name='제휴 방식', help_text='할인형, 리뷰형, 서비스제공형, 타임형 중 하나 이상')
     # 예: ["할인형", "리뷰형"]
 
@@ -71,22 +69,12 @@ class Proposal(models.Model):
         max_length=40, blank=True, db_index=True,
         verbose_name='적용 대상'
     )
-    # apply_target_other = models.CharField(
-    #     max_length=200, blank=True, verbose_name='적용 대상(기타 상세)'
-    # )
 
     # 시간대는 유연하게 JSON 사용
     # 예: [{"days":["Mon","Tue"],"start":"14:00","end":"17:00"}]
     time_windows = models.JSONField(
         default=list, blank=True, verbose_name='적용 시간대'
     )
-
-    # 혜택의 종류, 혜택 설명이 있기 때문에 사용하지 않을 수 있음
-    # 필요 없음
-    # benefit_type = models.CharField(
-    #     max_length=30, choices=BenefitType.choices, default=BenefitType.PERCENT_DISCOUNT, db_index=True,
-    #     verbose_name='혜택 유형'
-    # )
     
     # 혜택 설명, 수치로 적을 필요 없고 문장 형태로 작성
     benefit_description = models.CharField(
@@ -102,34 +90,6 @@ class Proposal(models.Model):
     # 수정일자는 자동으로 갱신됨
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일자')
     modified_at = models.DateTimeField(auto_now=True, verbose_name='수정일자')
-
-    # 인삿말을 위한 함수 -> 필요 없음
-    # def build_greeting(self):
-    #     # 역할에 따라 약간씩 다르게
-    #     # 사장님이 작성한 제안서의 경우, 학생회에 대한 감사 인사
-    #     if self.author.user_role == User.Role.OWNER:
-    #         to_who = "학생회"
-    #         return (
-    #         f"안녕하세요.\n"
-    #         f"귀 {to_who}의 적극적인 학생 복지 및 교내 활동 지원에 항상 감사드립니다.\n"
-    #         f"저희 업체는 학생들에게 더 나은 서비스를 제공하고자 , 아래와 같이 제휴를 제안드립니다.")
-    #     else:
-    #         # 학생회가 작성한 제안서의 경우, 사장님에 대한 존경 인사
-    #         return (
-    #         f"안녕하세요.\n"
-    #         f"학생들의 학교생활과 지역 상권과의 상생을 위해, 귀 가게와의 제휴를 정중하게 요청드립니다\n"
-    #         f"아래의 내용을 참고하시어 긍정적인 검토 부탁드립니다.")
-
-    # 끝맺음말을 위한 함수 -> 필요 없음
-    # def build_closing(self):
-    #     name = (
-    #         self.sender_name
-    #         or (self.author.get_full_name() if hasattr(self.author, "get_full_name") else None)
-    #         or self.author.username
-    #         or (self.author.email or "")
-    #     )
-    #     contact = self.contact_info or ""
-    #     return f"\n감사합니다.\n{name}\n{contact}"
 
     class Meta:
         verbose_name = '제안서'
