@@ -385,7 +385,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # 사장 프로필의 contact을 사용하는 것이 나음 -> 수정을 해야 함 (2025/08/22)
         author = request.user
         author_name = author.username or (author.email or "")
-        author_contact = request.data.get("contact_info") or author.email or ""
+        # author_contact = request.data.get("contact_info") or author.email or ""
 
         body_contact = (request.data.get("contact_info") or "").strip()
         if body_contact: # 프론트에서 body에 값이 있다면 그것을 사용
