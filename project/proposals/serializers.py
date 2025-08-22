@@ -209,3 +209,14 @@ class ProposalStatusChangeSerializer(serializers.ModelSerializer):
                 except StudentGroupProfile.DoesNotExist:
                     pass
         return obj
+
+
+class ProposalSentListSerializer(serializers.ModelSerializer):
+    # 키 이름을 요구사항에 맞춰 변환
+    created_date = serializers.DateTimeField(source="created_at", read_only=True)
+    modified_date = serializers.DateTimeField(source="modified_at", read_only=True)
+
+    class Meta:
+        model = Proposal
+        fields = ("id", "partnership_type", "created_date", "modified_date")
+        read_only_fields = fields
