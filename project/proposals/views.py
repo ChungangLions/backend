@@ -19,8 +19,7 @@ from profiles.serializers import OwnerProfileForAISerializer
 from proposals.services.get_info import get_owner_profile_snapshot_by_user_id
 from proposals.services.make_prompt import generate_proposal_from_owner_profile
 from accounts.models import User
-from profiles.models import OwnerProfile
-
+from profiles.models import OwnerProfile, StudentGroupProfile
 
 # 필요한 view 목록
 '''
@@ -216,7 +215,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return Response(ProposalReadSerializer(obj, context={"request": request}).data)
         return resp
     
-    # GPT 기반 제안서 자동 생성 액션
+
+    #--- GPT 기반 제안서 자동 생성 액션 ---
     @swagger_auto_schema(
         method='post',
         operation_summary="(AI) 사장님 프로필 기반 제안서 자동 생성",
@@ -226,7 +226,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             required=["recipient"],
             properties={
                 "recipient": openapi.Schema(type=openapi.TYPE_INTEGER, description="사장님(User.id)"),
-                "contact_info": openapi.Schema(type=openapi.TYPE_STRING, description="작성자 연락처(선택; 미지정 시 이메일 등 사용)"),
+                "contact_info": openapi.Schema(type=openapi.TYPE_STRING, description="작성자 연락처(선택; 미지정 시 학생 프로필의 연락처를 사용)"),
             }
         ),
         responses={201: ProposalReadSerializer()},
@@ -263,8 +263,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # 작성자 정보 (작성자는 여기선 학생단체임)
         author = request.user
         author_name = author.username or (author.email or "")
-        author_contact = request.data.get("contact_info") or author.email or ""
+        # author_contact = request.data.get("contact_info") or author.email or "" -> 잠시 비활성화
 
+        # 2025/08/22 코드 추가 내용 (학생회 프로필에서 값을 가져와 author_contact에 할당)
+        body_contact = (request.data.get("contact_info") or "").strip()
+        if body_contact: # 프론트에서 body에 값이 있다면 그것을 사용
+            author_contact = body_contact
+        else: # 프론트에서 body 값이 없다면 학생 프로필 모델의 contact 필드의 값을 가져옴
+            author_contact = (
+                StudentGroupProfile.objects
+                .filter(user=author)
+                .values_list("contact", flat=True)
+                .first()
+            ) or ""
+                
         # GPT 호출 → 초안(JSON)
         ai_dict = generate_proposal_from_owner_profile(
             owner_profile=profile_dict,
@@ -302,7 +314,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             ),
             "contact_info": openapi.Schema(
                 type=openapi.TYPE_STRING,
-                description="작성자 연락처(선택; 미입력 시 작성자 이메일 사용)"
+                description="작성자 연락처(선택; 미입력 시 사장님 프로필에 저장된 연락처를 사용함)"
             ),
         },
         example={
@@ -370,9 +382,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return Response({"detail": "작성자(사장님)의 프로필이 없습니다."}, status=400)
 
         # 작성자 정보
+        # 사장 프로필의 contact을 사용하는 것이 나음 -> 수정을 해야 함 (2025/08/22)
         author = request.user
         author_name = author.username or (author.email or "")
         author_contact = request.data.get("contact_info") or author.email or ""
+
+        body_contact = (request.data.get("contact_info") or "").strip()
+        if body_contact: # 프론트에서 body에 값이 있다면 그것을 사용
+            author_contact = body_contact
+        else: # 프론트에서 body 값이 없다면 사장님 프로필 모델의 contact 필드의 값을 가져옴
+            author_contact = (
+                OwnerProfile.objects
+                .filter(user=author)
+                .values_list("contact", flat=True)
+                .first()
+            ) or ""
 
         # GPT 호출 → 초안(JSON)
         ai_dict = generate_proposal_from_owner_profile(
