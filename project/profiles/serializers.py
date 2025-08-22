@@ -189,6 +189,7 @@ class OwnerProfileForAISerializer(serializers.ModelSerializer):
             'user', # 사장님 ID
             'campus_name', # 주변 대학교 이름
             'business_type', # 업종 ex) 카페, 주점
+            'business_type_other', # 기타 업종 상세
             'profile_name', # 가게 이름
             'business_day', # 영업일 예: {"월": ["09:00-15:00"], "수": ["18:00-24:00"]}
             # 제휴 목표 7가지 (goal_other == True일 시 goal_other_detail을 무조건 작성해야함)

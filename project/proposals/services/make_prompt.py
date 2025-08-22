@@ -33,6 +33,7 @@ def generate_proposal_from_owner_profile(
         "campus_name": "중앙대학교",
         "profile_name": "Middle Door",
         "business_type": "카페",
+        "business_type_other": "",
         "business_day": [{"월": ["09:00-21:00"], "화": ["09:00-21:00"], "수": ["09:00-21:00"], "목": ["09:00-21:00"], "금": ["09:00-21:00"], "토": ["10:00-17:00"]}],
         "goal_new_customers": True,
         "goal_revisit": False,
