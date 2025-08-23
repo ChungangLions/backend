@@ -18,7 +18,7 @@ from .serializers import (
 
 # GPT를 이용한 제안서 생성 서비스
 from profiles.serializers import OwnerProfileForAISerializer
-from proposals.services.get_info import get_owner_profile_snapshot_by_user_id
+from proposals.services.get_info import get_owner_profile_snapshot_by_user_id, get_student_group_profile_snapshot_by_user_id
 from proposals.services.make_prompt import generate_proposal_from_owner_profile
 from accounts.models import User
 from profiles.models import OwnerProfile, StudentGroupProfile
@@ -226,7 +226,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #--- GPT 기반 제안서 자동 생성 액션 ---
     @swagger_auto_schema(
         method='post',
-        operation_summary="(AI) 사장님 프로필 기반 제안서 자동 생성",
+        operation_summary="(AI) 학생 단체 -> 사장님 제안서 자동 생성",
         tags=["Proposals"],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -265,7 +265,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except OwnerProfile.DoesNotExist:
             return Response({"detail": "수신자 사장님의 프로필이 없습니다."}, status=400)
 
-
+        # 작성자(학생단체) 프로필 스냅샷 (필요 시 GPT에 보조정보로 제공)
+        student_profile_dict = None
+        try:
+            student_profile_dict = get_student_group_profile_snapshot_by_user_id(request.user.id, request=request)  # ✅ 작성자(학생회)
+        except StudentGroupProfile.DoesNotExist:
+            return Response({"detail": "학생회의 프로필이 없습니다."}, status=400)
+        
         # 작성자의 정보에서 author_contact를 profiles에서 id랑 매칭 후 가져와야함.
         # 작성자 정보 (작성자는 여기선 학생단체임)
         author = request.user
@@ -288,6 +294,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             owner_profile=profile_dict,
             author_name=author_name,
             author_contact=author_contact,
+            student_group_profile=student_profile_dict
         )
 
         # 서버에서 recipient 주입 후, 표준 WriteSerializer로 검증/생성
@@ -387,11 +394,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except OwnerProfile.DoesNotExist:
             return Response({"detail": "작성자(사장님)의 프로필이 없습니다."}, status=400)
 
+        # 학생회의 StudentGroupProfile 스냅샷 (필요 시 GPT에 보조정보로 제공)
+        student_profile_dict = None
+        try:
+            student_profile_dict = get_student_group_profile_snapshot_by_user_id(recipient_id, request=request)  # ✅ 수신자(학생회)
+        except StudentGroupProfile.DoesNotExist:
+            return Response({"detail": "학생회의 프로필이 없습니다."}, status=400)
+
+
         # 작성자 정보
         # 사장 프로필의 contact을 사용하는 것이 나음 -> 수정을 해야 함 (2025/08/22)
         author = request.user
         author_name = author.username or (author.email or "")
-        # author_contact = request.data.get("contact_info") or author.email or ""
 
         body_contact = (request.data.get("contact_info") or "").strip()
         if body_contact: # 프론트에서 body에 값이 있다면 그것을 사용
@@ -409,6 +423,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             owner_profile=profile_dict,
             author_name=author_name,
             author_contact=author_contact,
+            student_group_profile=student_profile_dict,
         )
 
         # 서버에서 recipient 주입 후, 표준 WriteSerializer로 검증/생성
