@@ -94,13 +94,13 @@ class OwnerProfile(models.Model):
 
     # 바쁜 시간대
     peak_time = models.JSONField(
-        default=dict, blank = False,
+        default=dict, blank = True, null=True,
         help_text = '요일별 시간대 배열 JSON' # 예: {"주말": ["09:00-15:00"], "평일": ["18:00-24:00"]}
     )
 
     # 한산 시간대
     off_peak_time = models.JSONField(
-        default=dict, blank = False,
+        default=dict, blank = True, null=True,
         help_text = '요일별 시간대 배열 JSON' # 예: {"주말": ["09:00-15:00"], "평일": ["18:00-24:00"]}
     )
 
