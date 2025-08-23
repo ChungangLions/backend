@@ -224,3 +224,19 @@ class ProposalSentListSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return getattr(obj, "latest_status", None) or obj.current_status
+    
+
+class ProposalReceivedListSerializer(serializers.ModelSerializer):
+    # 키 이름을 요구사항에 맞춰 변환
+    created_date = serializers.DateTimeField(source="created_at", read_only=True)
+    modified_date = serializers.DateTimeField(source="modified_at", read_only=True)
+
+    status = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Proposal
+        fields = ("id", "partnership_type", "created_date", "modified_date", "status")
+        read_only_fields = fields
+
+    def get_status(self, obj):
+        return getattr(obj, "latest_status", None) or obj.current_status
