@@ -18,7 +18,7 @@ from .serializers import (
 
 # GPT를 이용한 제안서 생성 서비스
 from profiles.serializers import OwnerProfileForAISerializer
-from proposals.services.get_info import get_owner_profile_snapshot_by_user_id
+from proposals.services.get_info import get_owner_profile_snapshot_by_user_id, get_student_group_profile_snapshot_by_user_id
 from proposals.services.make_prompt import generate_proposal_from_owner_profile
 from accounts.models import User
 from profiles.models import OwnerProfile, StudentGroupProfile
@@ -226,7 +226,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #--- GPT 기반 제안서 자동 생성 액션 ---
     @swagger_auto_schema(
         method='post',
-        operation_summary="(AI) 사장님 프로필 기반 제안서 자동 생성",
+        operation_summary="(AI) 학생 단체 -> 사장님 제안서 자동 생성",
         tags=["Proposals"],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
