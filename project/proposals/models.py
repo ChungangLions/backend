@@ -132,7 +132,7 @@ class Proposal(models.Model):
             ProposalStatus.objects.create(
                 proposal=self,
                 status=ProposalStatus.Status.DRAFT,
-                changed_by=self.recipient, # self.author로 수정해야할 수 있음. (2025/08/23)
+                changed_by=self.author, # self.author로 수정해야할 수 있음. (2025/08/23)
                 comment='제안서 초기 생성'
             )
 
