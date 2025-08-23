@@ -3,9 +3,14 @@ from textwrap import dedent
 from openai import OpenAI
 
 from config.settings import get_secret
+from datetime import date, timedelta
 
 OPENAI_API_KEY = get_secret("OPEN_API_SECRET_KEY")
 client = OpenAI(api_key=OPENAI_API_KEY)
+
+today = date.today()
+start_hint = (today + timedelta(days=2)).strftime("%Y-%m-%d")
+end_hint = (today + timedelta(days=30)).strftime("%Y-%m-%d")
 
 def _j(obj):  # JSON pretty string (한글 보존)
     return json.dumps(obj, ensure_ascii=False, indent=2)
@@ -54,14 +59,18 @@ def generate_proposal_from_owner_profile(
         "service_other": False,
         "service_other_detail": "",
         "comment": "오래 협업하고 싶습니다.",
+        "menus": [
+        {"name": "아메리카노", "price": 4000},
+        {"name": "카페라떼", "price": 5000}
+        ],
     }
     example_output = {
-        "expected_effects": "합리적 할인과 시간대 최적화로 약 10% 매출 증대를 기대합니다.",
+        "expected_effects": "아메리카노와 카페라떼와 같은 음료를 할인함으로써 다른 메뉴를 추가 구입할 수 있는 요인이 생길 것 같습니다. 따라서 이로 인해 매출이 약 10% 증가할 것으로 예상됩니다.",
         "partnership_type": ["할인형"],
         "contact_info": author_contact,
         "apply_target": "학생회에 속한 모든 인원 및 관련 학과 학생 전부",
-        "time_windows": [{"days": ["금요일", "토요일"], "start": "14:00", "end": "16:00"}],
-        "benefit_description": "음료 10% 할인",
+        "time_windows": [{"days": ["수요일", "목요일", "금요일"], "start": "16:00", "end": "21:00"}],
+        "benefit_description": "커피음료 10% 할인 (에이드, 아인슈페너는 제외)",
         "period_start": "2025-10-01",
         "period_end": "2025-12-31",
     }
@@ -73,16 +82,21 @@ def generate_proposal_from_owner_profile(
     - contact_info: string (기본값은 위에 준 작성자 연락처)
     - apply_target: string (제안서를 작성하는 대상이 사장님이라면, 대학생들 혹은 학생회에 속한 대상을 위주로 작성, 만약 작성자가 학생회라면 마찬가지로 학생회를 위주로 작성하면 좋을 것 같음)
     - time_windows: object[]  // 형식: {{"days":["월요일","화요일"], "start":"HH:MM", "end":"HH:MM"}}
-    - benefit_description: string (30자 이내로 짧게 어떠한 혜택을 제공하는지 작성하면 됨)
+    - benefit_description: string (100자 이내로 어떠한 혜택을 제공하는지 작성하면 됨, 단 메뉴명을 활용하는 것이 바람직함)
     - period_start: "YYYY-MM-DD" 또는 null (제안서가 시작되는 날짜, period_start는 최대한 null을 피하고 제안서를 생성한 이후 1~2일 이후로 시작 날짜를 설정하는 것이 좋을 것으로 생각 됨.)
     - period_end:   "YYYY-MM-DD" 또는 null (제안서가 종료되는 날짜, null이면 기간 없음)
 
-    주의:
-    - "recipient" 키는 절대 포함하지 마(서버에서 채움)
-    - off_peak_time를 우선 고려해 time_windows를 제안
-    - period_start는 최대한 null을 피하고 제안서를 생성한 이후 1~2일 이후로 시작 날짜를 설정하는 것이 좋을 것으로 생각 됨.
-    - period_end는 제휴하고자하는 기간의 영향을 많이 받게 되는데, 사장님 혹은 학생단체가 제휴 기간을 길게 잡고자 한다면 3개월 이상으로 설정하고, 그렇지 않는다면 14일 이내로 기간을 설정하자
+    주의 및 추가 중요 규칙!:
+    - 해당 주의 사항 및 중요 규칙을 반드시 숙지하고, 출력 JSON에 절대 어긋나지 않도록 해.
+    - expected_effects는 margin_rate와 average_sales를 참고하여 작성하라. 또한, 작성할때 너무 간략하게 작성하는 것이 아닌 충분한 정보를 담아 작성하라.
+    - expected_effects는 margin_rate와 average_sales도 참고해야하지만 가게의 특성과 메뉴를 고려해야 한다. 정보를 담을 때 위의 예시 출력과 같이 기대 효과를 원인과 결과와 같이 인과적으로 작성해주면 좋을 것 같다.
+    - 오늘 날짜는 {{today.strftime("%Y-%m-%d")}}이다.
+    - period_start는 오늘 이후 1~2일 뒤 날짜(예: {{start_hint}})로 설정하라. 그리고 최대한 null을 피하는 것이 좋을것 같음.
+    - period_end는 period_start 이후, 보통 14일~3개월 범위 (예: {{end_hint}} 정도)로 설정하라. 사장님 혹은 학생단체가 제휴 기간을 길게 잡고자 한다면 3개월 이상으로 설정하고, 그렇지 않는다면 14일 이내로 기간을 설정하자.
     - period_end는 period_start보다 빠를 수는 없다는 것을 명심했으면 좋겠음.
+    - menus 배열이 주어졌다면, benefit_description에 해당 메뉴명을 활용하는 것이 바람직함. 세부적인 디테일은 포함하면 좋을 것 같음 (예: "아메리카노 10% 할인", "치즈케익 무료 제공")
+    - "recipient" 키는 절대 포함하지 마(서버에서 채움)
+    - off_peak_time를 우선 고려해 time_windows를 제안하자. 즉 off_peak_time의 시간대에 맞춰 제안하자는 의미이다. peak_time도 고려하여 이 시간대는 피하는 것으로 진행하자.
     """)
 
     user = (
@@ -99,7 +113,7 @@ def generate_proposal_from_owner_profile(
     resp = client.chat.completions.create(
         model="gpt-4o",
         response_format={"type": "json_object"},
-        temperature=0.2,
+        temperature=0.3,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
