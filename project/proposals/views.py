@@ -3,7 +3,6 @@ from django.db.models import Q, OuterRef, Subquery, Value
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models.functions import Coalesce
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -68,7 +67,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             proposal=OuterRef("pk")
         ).order_by("-changed_at").values("status")[:1]
         # 이력이 없으면 DRAFT로 간주 (2025/08/23)
-        qs = qs.annotate(latest_status=Coalesce(Subquery(latest_status_subq), default=Value(ProposalStatus.Status.DRAFT)))
+        qs = qs.annotate(latest_status=Subquery(latest_status_subq))
 
         # box 필터: inbox/sent/all (기본 all=양쪽)
         box = self.request.query_params.get("box", "all")
