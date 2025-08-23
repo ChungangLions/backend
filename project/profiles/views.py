@@ -227,59 +227,6 @@ class OwnerProfileDetailView(BaseDetailMixin, APIView):
                             order=start_order + i
                         )
 
-                # # 대표 사진 업로드 처리
-                # photos = request.FILES.getlist('photos')
-                # if photos:
-                #     # 기존 사진 삭제
-                #     profile.photos.all().delete()
-                #     if len(photos) > MAX_OWNER_PHOTOS:
-                #         return Response(
-                #             {"message": f"대표 사진은 최대 {MAX_OWNER_PHOTOS}장까지 업로드할 수 있습니다."},
-                #             status=status.HTTP_400_BAD_REQUEST,
-                #         )
-                #     for i, photo in enumerate(photos):
-                #         OwnerPhoto.objects.create(
-                #             owner_profile=profile,
-                #             image=photo,
-                #             order=i
-                #         )
-            
-
-
-                # 메뉴 이미지 처리
-                # if 'menus_data' in request.data:  # menus_data 키가 request에 존재하면
-                #     menu_images = request.FILES.getlist('menus_images')
-                #     menus_data_raw = request.data.get('menus_data')
-
-                #     menus_data = []
-                #     if isinstance(menus_data_raw, str):
-                #         try:
-                #             menus_data = json.loads(menus_data_raw)
-                #         except json.JSONDecodeError:
-                #             menus_data = []
-                #     elif isinstance(menus_data_raw, list):
-                #         menus_data = menus_data_raw
-                #     else:
-                #         menus_data = []
-
-                #     # menus_data가 실제로 들어왔을 때만 기존 메뉴 삭제 + 갱신
-                #     if menus_data:
-                #         if len(menus_data) > MAX_OWNER_MENUS:
-                #             return Response(
-                #                 {"detail": f"대표 메뉴는 최대 {MAX_OWNER_MENUS}개까지 등록할 수 있습니다."},
-                #                 status=status.HTTP_400_BAD_REQUEST,
-                #             )
-                #         profile.menus.all().delete()
-                #         for idx, menu_data in enumerate(menus_data):
-                #             menu_image = menu_images[idx] if idx < len(menu_images) else None
-                #             Menu.objects.create(
-                #                 owner_profile=profile,
-                #                 name=menu_data.get('name'),
-                #                 price=menu_data.get('price'),
-                #                 image=menu_image,
-                #                 order=idx
-                #             )
-            
             # ---- 기본 대표 사진 자동 생성 ----
             if profile.photos.count() == 0:
                 OwnerPhoto.objects.create(
@@ -428,20 +375,6 @@ class StudentGroupProfileDetailView(BaseDetailMixin, APIView):
                             order=start_order + i
                         )
 
-
-                # photos = request.FILES.getlist('photos')
-                # # 사진 수정 로직
-                # if photos:
-                #     # 기존 사진 삭제
-                #     profile.photos.all().delete()
-                #     # 새 사진 저장
-                #     for idx, photo in enumerate(request.FILES.getlist('photos')):
-                #         StudentPhoto.objects.create(
-                #             student_group_profile=profile,
-                #             image=photo,
-                #             order=idx
-                #         )
-
             updated_profile = StudentGroupProfile.objects.select_related('user').prefetch_related('photos').get(id=profile.id)
             return Response(
                 StudentGroupProfileSerializer(updated_profile).data, 
@@ -567,22 +500,6 @@ class StudentProfileDetailView(BaseDetailMixin, APIView):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-        # new_image = request.FILES.get('image')
-        # if new_image:
-        #     if profile.image:
-        #         profile.image.delete(save=False)
-
-        # serializer = StudentProfileCreateSerializer(profile, data=request.data, partial=True)
-        # if serializer.is_valid():
-        #     profile = serializer.save()
-        #     updated_profile = StudentProfile.objects.select_related('user').get(id=profile.id)
-        #     return Response(
-        #         StudentProfileSerializer(updated_profile).data, 
-        #         status=status.HTTP_200_OK
-        #     )
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
     @swagger_auto_schema(
         operation_summary="학생 프로필 삭제",
         operation_description=(
