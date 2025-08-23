@@ -1,8 +1,9 @@
 from django.shortcuts import render
-from django.db.models import Q, OuterRef, Subquery
+from django.db.models import Q, OuterRef, Subquery, Value
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models.functions import Coalesce
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -49,7 +50,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [permissions.IsAuthenticated, IsAuthorOrRecipient]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["title", "author__username", "recipient__username", "contact_info"]
+    search_fields = ["author__username", "recipient__username", "contact_info"]
     ordering_fields = ["created_at", "modified_at", "id"]
     ordering = ["-created_at"]
 
@@ -66,7 +67,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         latest_status_subq = ProposalStatus.objects.filter(
             proposal=OuterRef("pk")
         ).order_by("-changed_at").values("status")[:1]
-        qs = qs.annotate(latest_status=Subquery(latest_status_subq))
+        # 이력이 없으면 DRAFT로 간주 (2025/08/23)
+        qs = qs.annotate(latest_status=Coalesce(Subquery(latest_status_subq), default=Value(ProposalStatus.Status.DRAFT)))
 
         # box 필터: inbox/sent/all (기본 all=양쪽)
         box = self.request.query_params.get("box", "all")
@@ -88,6 +90,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
         if date_to:
             qs = qs.filter(created_at__date__lte=date_to)
 
+        # 수신자는 상대방의 DRAFT를 볼 수 없어야 함 (2025/08/23)
+        if not user.is_staff:
+            qs = qs.exclude(Q(recipient=user) & Q(latest_status=ProposalStatus.Status.DRAFT))
+
         return qs
 
     def get_serializer_class(self):
@@ -105,7 +111,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
     # --- 삭제: 작성자 & 미열람(UNREAD)일 때만 허용 ---
     @swagger_auto_schema(
         operation_summary="제안서 삭제",
-        operation_description="작성자이며 제안서가 '미열람(UNREAD)' 상태일 때만 삭제 가능합니다.",
+        operation_description="작성자이며 제안서가 '미열람(UNREAD)' 상태 혹은 '초안(DRAFT)' 상태일 때만 삭제 가능합니다.",
         responses={204: "No Content", 400: "Bad Request", 403: "Forbidden"},
         tags=["Proposals"],
     )
@@ -154,8 +160,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             openapi.Parameter("status", openapi.IN_QUERY, type=openapi.TYPE_STRING,
                               enum=[c for c, _ in ProposalStatus.Status.choices],
                               description="현재 상태로 필터"),
-            openapi.Parameter("date_from", openapi.IN_QUERY, type=openapi.FORMAT_DATE, description="생성일 시작(YYYY-MM-DD)"),
-            openapi.Parameter("date_to", openapi.IN_QUERY, type=openapi.FORMAT_DATE, description="생성일 종료(YYYY-MM-DD)"),
+            openapi.Parameter("date_from", openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description="생성일 시작(YYYY-MM-DD)"),
+            openapi.Parameter("date_to", openapi.IN_QUERY, type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE, description="생성일 종료(YYYY-MM-DD)"),
             openapi.Parameter("search", openapi.IN_QUERY, type=openapi.TYPE_STRING,
                               description="제목/작성자/수신자/연락처 검색"),
             openapi.Parameter("ordering", openapi.IN_QUERY, type=openapi.TYPE_STRING,
@@ -264,7 +270,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # 작성자 정보 (작성자는 여기선 학생단체임)
         author = request.user
         author_name = author.username or (author.email or "")
-        # author_contact = request.data.get("contact_info") or author.email or "" -> 잠시 비활성화
 
         # 2025/08/22 코드 추가 내용 (학생회 프로필에서 값을 가져와 author_contact에 할당)
         body_contact = (request.data.get("contact_info") or "").strip()

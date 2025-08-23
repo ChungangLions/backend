@@ -127,12 +127,12 @@ class Proposal(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
-        # 최초 생성 시 상태를 UNREAD로 기록
+        # 최초 생성 시 상태를 DRAFT로 기록
         if is_new:
             ProposalStatus.objects.create(
                 proposal=self,
-                status=ProposalStatus.Status.UNREAD,
-                changed_by=self.recipient,  # "미열람" 상태의 소유자는 수신자 관점
+                status=ProposalStatus.Status.DRAFT,
+                changed_by=self.recipient, # self.author로 수정해야할 수 있음. (2025/08/23)
                 comment='제안서 초기 생성'
             )
 
@@ -149,7 +149,7 @@ class Proposal(models.Model):
             latest = self.status_history.latest('changed_at')
             return latest.status
         except ProposalStatus.DoesNotExist:
-            return ProposalStatus.Status.UNREAD
+            return ProposalStatus.Status.DRAFT
 
     @property
     def current_status_object(self):
@@ -161,8 +161,11 @@ class Proposal(models.Model):
 
     @property
     def is_editable(self):
-        # 작성자는 '미열람'일 때만 수정 가능하도록 예시
-        return self.current_status == ProposalStatus.Status.UNREAD
+        # 작성자는 '미열람'혹은 '초안'일 때만 수정 가능 (2025/08/23)
+        return self.current_status in (
+        ProposalStatus.Status.DRAFT,
+        ProposalStatus.Status.UNREAD,
+    )
 
     @property
     def is_partnership_made(self):
@@ -188,11 +191,14 @@ class ProposalStatus(models.Model):
     UNREAD → READ → PARTNERSHIP/REJECTED
     REJECTED → UNREAD (재제출 허용)
     """
+
+    # Status에 DRAFT 상태 추가 하기 (2025/08/23)
     class Status(models.TextChoices):
         UNREAD      = 'UNREAD',      '미열람'
         READ        = 'READ',        '열람'
         PARTNERSHIP = 'PARTNERSHIP', '제휴체결'
         REJECTED    = 'REJECTED',    '거절'
+        DRAFT       = 'DRAFT',       '초안'
 
     proposal   = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='status_history')
     status     = models.CharField(max_length=20, choices=Status.choices)
@@ -216,6 +222,7 @@ class ProposalStatus(models.Model):
     def clean(self):
         """
         상태 전이 규칙 + 주체 권한 간단 검증:
+        - DRAFT -> UNREAD: 송신 주체만 열람 가능 (수신자한테 아직 보내지 않은 상태)
         - UNREAD → READ: 수신자만 가능(열람은 수신자의 행위)
         - READ → PARTNERSHIP/REJECTED: 수신자만 가능(수락/거절권자는 제안을 받은 쪽)
         - REJECTED → UNREAD: 작성자만 가능(재제출은 보낸 쪽)
@@ -223,11 +230,14 @@ class ProposalStatus(models.Model):
         if not self.proposal_id or not self.changed_by_id:
             return
 
-         # ▶ 첫 상태라면 UNREAD만 허용하고 전이 검증은 스킵
+        # ▶ 첫 상태라면 DRAFT 혹은 UNREAD만 허용하고 전이 검증은 스킵 (2025/08/23)
         latest = self.proposal.status_history.order_by('-changed_at').first()
         if latest is None:
-            if self.status != self.Status.UNREAD:
-                raise ValidationError({'status': '첫 상태는 UNREAD여야 합니다.'})
+            if self.status not in (self.Status.DRAFT, self.Status.UNREAD):
+                raise ValidationError({'status': '첫 상태는 UNREAD혹은 DRAFT여야 합니다.'})
+            # DRAFT일 경우 반드시 작성자가 생성해야 함
+            if self.status == self.Status.DRAFT and self.changed_by != self.proposal.author:
+                raise ValidationError('초안(DRAFT)은 작성자만 생성할 수 있습니다.')
             return
         
         curr = self.proposal.current_status
@@ -240,12 +250,16 @@ class ProposalStatus(models.Model):
             self.Status.READ:        [self.Status.PARTNERSHIP, self.Status.REJECTED],
             self.Status.PARTNERSHIP: [],
             self.Status.REJECTED:    [self.Status.UNREAD],
+            self.Status.DRAFT:       [self.Status.UNREAD], # DRAFT 상태는 아직 제안서가 발송되지 않은 상태로 UNREAD로만 전이 가능
         }
         if nxt not in valid_transitions.get(curr, []):
             raise ValidationError({'status': f'{curr} → {nxt} 전이는 허용되지 않습니다.'})
 
-        # 전이의 주체 권한
-        if curr == self.Status.UNREAD and nxt == self.Status.READ:
+        # 전이의 주체 권한 (수정, 2025/08/23)
+        if curr == self.Status.DRAFT and nxt == self.Status.UNREAD:
+            if self.changed_by != author:
+                raise ValidationError('초안 제출(UNREAD 변경)은 작성자만 할 수 있습니다.')
+        elif curr == self.Status.UNREAD and nxt == self.Status.READ:
             if self.changed_by != recipient:
                 raise ValidationError('열람(READ)은 수신자만 할 수 있습니다.')
         elif curr == self.Status.READ and nxt in (self.Status.PARTNERSHIP, self.Status.REJECTED):
@@ -258,3 +272,9 @@ class ProposalStatus(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+    # 추가 검증 속성 (2025/08/23)
+    @property
+    def is_visible_to_recipient(self):
+        """수신자가 열람 가능한 상태인지 여부 (DRAFT은 비공개)"""
+        return self.status != self.Status.DRAFT
