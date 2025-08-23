@@ -90,9 +90,10 @@ def generate_proposal_from_owner_profile(
     - 해당 주의 사항 및 중요 규칙을 반드시 숙지하고, 출력 JSON에 절대 어긋나지 않도록 해.
     - expected_effects는 margin_rate와 average_sales를 참고하여 작성하라. 또한, 작성할때 너무 간략하게 작성하는 것이 아닌 충분한 정보를 담아 작성하라.
     - expected_effects는 margin_rate와 average_sales도 참고해야하지만 가게의 특성과 메뉴를 고려해야 한다. 정보를 담을 때 위의 예시 출력과 같이 기대 효과를 원인과 결과와 같이 인과적으로 작성해주면 좋을 것 같다.
-    - 오늘 날짜는 {{today.strftime("%Y-%m-%d")}}이다.
-    - period_start는 오늘 이후 1~2일 뒤 날짜(예: {{start_hint}})로 설정하라. 그리고 최대한 null을 피하는 것이 좋을것 같음.
-    - period_end는 period_start 이후, 보통 14일~3개월 범위 (예: {{end_hint}} 정도)로 설정하라. 사장님 혹은 학생단체가 제휴 기간을 길게 잡고자 한다면 3개월 이상으로 설정하고, 그렇지 않는다면 14일 이내로 기간을 설정하자.
+    - 또한 expected_effects는 경제적인면 하고 상대방이 얻을 수 있는 이득을 중심으로 작성하라. 위의 예시보다 더 자세하고 구체적으로 작성하는 것이 좋을 것 같음. 사례를 여러개로 나누어서 길고 구체적이게 작성하면 좋을 것 같음. 100자 이내로 부탁.
+    - 오늘 날짜는 {today.strftime("%Y-%m-%d")}이다.
+    - period_start는 오늘 이후 1~2일 뒤 날짜(예: {start_hint})로 설정하라. 그리고 최대한 null을 피하는 것이 좋을것 같음.
+    - period_end는 period_start 이후, 보통 14일~3개월 범위 (예: {end_hint} 정도)로 설정하라. 사장님 혹은 학생단체가 제휴 기간을 길게 잡고자 한다면 3개월 이상으로 설정하고, 그렇지 않는다면 14일 이내로 기간을 설정하자.
     - period_end는 period_start보다 빠를 수는 없다는 것을 명심했으면 좋겠음.
     - menus 배열이 주어졌다면, benefit_description에 해당 메뉴명을 활용하는 것이 바람직함. 세부적인 디테일은 포함하면 좋을 것 같음 (예: "아메리카노 10% 할인", "치즈케익 무료 제공")
     - "recipient" 키는 절대 포함하지 마(서버에서 채움)
