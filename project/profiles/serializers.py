@@ -181,8 +181,17 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
         
         return value
 
+class MenuForAISerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Menu
+        fields = ("name", "price")  # 필요 필드만
+        read_only_fields = fields
+
+
 # GPT한테 넘길 사장님의 프로필 Serializer -> 최신 필드 추가하기 (2025/08/20)
 class OwnerProfileForAISerializer(serializers.ModelSerializer):
+    
+    menus = MenuForAISerializer(many=True, read_only=True)  # related_name="menus" 사용
     class Meta:
         model = OwnerProfile
         fields = (
@@ -211,5 +220,6 @@ class OwnerProfileForAISerializer(serializers.ModelSerializer):
             'service_other',
             'service_other_detail',
             'comment', # 한줄 소개
+            'menus',
         )
         read_only_fields = fields
