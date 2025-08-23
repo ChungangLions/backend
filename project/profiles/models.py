@@ -183,16 +183,16 @@ class StudentGroupProfile(models.Model):
         help_text="검색으로 선택한 대학교명 (예: 서울대학교)"
     )
 
-    # 소속 
+    # 학생회명
     council_name = models.CharField(
         max_length = 100, blank=True, null=True,
-        help_text="소속"
+        help_text="학생회명"
     )
 
-    # 학생회명
+    # 소속
     department = models.CharField(
         max_length = 100, blank=True, null=True,
-        help_text="학생회명"
+        help_text="소속"
     )
     
     
