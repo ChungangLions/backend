@@ -113,7 +113,7 @@ def generate_proposal_from_owner_profile(
     resp = client.chat.completions.create(
         model="gpt-4o",
         response_format={"type": "json_object"},
-        temperature=0.2,
+        temperature=0.3,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
