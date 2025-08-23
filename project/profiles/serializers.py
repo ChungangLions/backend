@@ -181,6 +181,7 @@ class StudentProfileCreateSerializer(serializers.ModelSerializer):
         
         return value
 
+# prompt에 넘길 메뉴 Serializer
 class MenuForAISerializer(serializers.ModelSerializer):
     class Meta:
         model = Menu
@@ -188,10 +189,12 @@ class MenuForAISerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+
 # GPT한테 넘길 사장님의 프로필 Serializer -> 최신 필드 추가하기 (2025/08/20)
 class OwnerProfileForAISerializer(serializers.ModelSerializer):
     
     menus = MenuForAISerializer(many=True, read_only=True)  # related_name="menus" 사용
+
     class Meta:
         model = OwnerProfile
         fields = (
@@ -221,5 +224,21 @@ class OwnerProfileForAISerializer(serializers.ModelSerializer):
             'service_other_detail',
             'comment', # 한줄 소개
             'menus',
+            'studentgroups',
+        )
+        read_only_fields = fields
+
+# GPT에 넘길 학생단체 프로필 Serializer -> 최신 필드 추가하기 (2025/08/23)
+class StudentGroupProfileForAISerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentGroupProfile
+        fields = (
+            'council_name', # 학생회 이름
+            'department', # 소속 학과
+            'student_size', # 학생회 인원 수
+            'term_start', # 임기 시작일
+            'term_end', # 임기 종료일
+            'partnership_count', # 제휴 경험 횟수
+            'university_name', # 대학교 이름
         )
         read_only_fields = fields
