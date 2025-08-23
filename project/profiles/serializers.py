@@ -224,7 +224,6 @@ class OwnerProfileForAISerializer(serializers.ModelSerializer):
             'service_other_detail',
             'comment', # 한줄 소개
             'menus',
-            'studentgroups',
         )
         read_only_fields = fields
 
