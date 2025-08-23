@@ -265,7 +265,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except OwnerProfile.DoesNotExist:
             return Response({"detail": "수신자 사장님의 프로필이 없습니다."}, status=400)
 
+        # 작성자(학생단체) 프로필 스냅샷 (필요 시 GPT에 보조정보로 제공)
+        student_profile_dict = None
+        try:
+            student_profile_dict = get_student_group_profile_snapshot_by_user_id(request.user.id, request=request)  # ✅ 작성자(학생회)
+        except Exception:
+            # 학생회 프로필이 없을 수도 있으니 필수는 아님
+            student_profile_dict = None
 
+        
         # 작성자의 정보에서 author_contact를 profiles에서 id랑 매칭 후 가져와야함.
         # 작성자 정보 (작성자는 여기선 학생단체임)
         author = request.user
@@ -386,6 +394,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
             profile_dict = get_owner_profile_snapshot_by_user_id(author.id)
         except OwnerProfile.DoesNotExist:
             return Response({"detail": "작성자(사장님)의 프로필이 없습니다."}, status=400)
+
+        # 학생회의 StudentGroupProfile 스냅샷 (필요 시 GPT에 보조정보로 제공)
+        student_profile_dict = None
+        try:
+            student_profile_dict = get_student_group_profile_snapshot_by_user_id(recipient_id, request=request)  # ✅ 수신자(학생회)
+        except Exception:
+            student_profile_dict = None
 
         # 작성자 정보
         # 사장 프로필의 contact을 사용하는 것이 나음 -> 수정을 해야 함 (2025/08/22)
