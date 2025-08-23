@@ -269,10 +269,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         student_profile_dict = None
         try:
             student_profile_dict = get_student_group_profile_snapshot_by_user_id(request.user.id, request=request)  # ✅ 작성자(학생회)
-        except Exception:
-            # 학생회 프로필이 없을 수도 있으니 필수는 아님
-            student_profile_dict = None
-
+        except StudentGroupProfile.DoesNotExist:
+            return Response({"detail": "학생회의 프로필이 없습니다."}, status=400)
         
         # 작성자의 정보에서 author_contact를 profiles에서 id랑 매칭 후 가져와야함.
         # 작성자 정보 (작성자는 여기선 학생단체임)
@@ -296,6 +294,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             owner_profile=profile_dict,
             author_name=author_name,
             author_contact=author_contact,
+            student_group_profile=student_profile_dict
         )
 
         # 서버에서 recipient 주입 후, 표준 WriteSerializer로 검증/생성
@@ -399,14 +398,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
         student_profile_dict = None
         try:
             student_profile_dict = get_student_group_profile_snapshot_by_user_id(recipient_id, request=request)  # ✅ 수신자(학생회)
-        except Exception:
-            student_profile_dict = None
+        except StudentGroupProfile.DoesNotExist:
+            return Response({"detail": "학생회의 프로필이 없습니다."}, status=400)
+
 
         # 작성자 정보
         # 사장 프로필의 contact을 사용하는 것이 나음 -> 수정을 해야 함 (2025/08/22)
         author = request.user
         author_name = author.username or (author.email or "")
-        # author_contact = request.data.get("contact_info") or author.email or ""
 
         body_contact = (request.data.get("contact_info") or "").strip()
         if body_contact: # 프론트에서 body에 값이 있다면 그것을 사용
@@ -424,6 +423,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             owner_profile=profile_dict,
             author_name=author_name,
             author_contact=author_contact,
+            student_group_profile=student_profile_dict,
         )
 
         # 서버에서 recipient 주입 후, 표준 WriteSerializer로 검증/생성
