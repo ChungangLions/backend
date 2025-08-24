@@ -66,7 +66,7 @@ class Proposal(models.Model):
     
     # 직접 입력 창, string으로 받게 하되 choice 없이 자율적이게 설정
     apply_target = models.CharField(
-        max_length=40, blank=True, db_index=True,
+        max_length=150, blank=True, db_index=True,
         verbose_name='적용 대상'
     )
 
