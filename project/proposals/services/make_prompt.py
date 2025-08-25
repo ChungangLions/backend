@@ -78,7 +78,7 @@ def generate_proposal_from_owner_profile(
     }
 
     example_output = {
-        "expected_effects": "경영학부 재학생 약 1,000명 대상 홍보. 방문 학생 약 30% 증가 예상. 한산 시간대 유입 증가. 3개월 기준 약 300명 방문 (30% 방문 가정) -> 예상 추가 매출 약 150만 원 (인당 매출 4,500원 가정 시)",
+        "expected_effects": " 3개월 기준 약 300명 방문 (30% 방문 가정) -> 예상 추가 매출 약 150만 원 (인당 매출 4,500원 가정 시). 경영학부 재학생 약 1,000명 대상 홍보. 방문 학생 약 30% 예상. 한산 시간대 유입 증가.",
         "partnership_type": ["타임형", "할인형"],
         "contact_info": author_contact,
         "apply_target": "중앙대학교 경영학부에 소속된 재학생들",
