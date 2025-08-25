@@ -54,14 +54,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "modified_at", "id"]
     ordering = ["-created_at"]
 
+    def get_permissions(self):
+        # 🔐 임시 완화: 상세 조회만 로그인만 요구
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated()]
+        # 그 외 액션은 기존 권한 유지
+        return [perm() for perm in self.permission_classes]
+    
     def get_queryset(self):
         user = self.request.user
 
         # 내가 보낸/받은 것만 기본 표시 (관리자는 전체 허용)
         qs = Proposal.objects.select_related("author", "recipient") \
                              .prefetch_related("status_history")
-        if not user.is_staff:
-            qs = qs.filter(Q(author=user) | Q(recipient=user))
+        # if not user.is_staff:
+        #     qs = qs.filter(Q(author=user) | Q(recipient=user))
 
         # 최신 상태를 annotation (status 필터에 사용)
         latest_status_subq = ProposalStatus.objects.filter(
