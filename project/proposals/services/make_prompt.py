@@ -152,11 +152,12 @@ def generate_proposal_from_owner_profile(
     e. partnership_type의 내용을 기반으로 작성해야 한다. 예를 들어 partnership_type이 ["할인형", "서비스제공형"]이라면, 혜택에 할인율과 서비스 제공 관련 내용을 포함해야 한다, 이 경우 타임형, 리뷰형의 내용은 삼가하면 좋을 것 같음.
     f. 출력 방식은 다음의 예시를 참고하면 좋을 것 같다. 특히 혜택의 내용이 바뀔때는 마침표를 찍어야 함: ex) 의과대학 학생회 약 84명 대상 홍보. 방문 학생 약 30% 증가 예상 3개월 기준 약 84명 방문. 예상 추가 매출 약 134만 원.
 
-    3) 모든 partnership_type(= 제휴 유형)에서 expected_effects(= 기대효과)에 잠재 제휴 이용자 수, 기대 매출을 반드시 포함할 것. 만약 partnership_type(= 제휴 유형)이 "리뷰형"이라면, expected_effects(= 기대 효과)에 기대 매출과 노출 건수를 반드시 포함할 것.
+    3) 모든 partnership_type(= 제휴 유형)에서 expected_effects(= 기대효과)에 잠재 제휴 이용자 수, 기대 매출을 반드시 포함할 것. 
     잠재 제휴 이용자 수는 0.52 * 업종별 선호도 * student_size(= 소속 단위 학생 수)로 산출함. 이때, 업종별 선호도는 업종이 음식점일때 0.23, 카페일때 0.21, 술집일때 0.07로 계산함.
     기대 매출은 잠재 제휴 이용자 수 * average_sales(= 평균 인당 매출)로 산출함.
     노출 건수는 잠재 제휴 이용자 수와 같음.
     menus 배열이 주어졌다면, benefit_description에 해당 메뉴명을 활용하는 것이 바람직함.
+    만약 partnership_type(= 제휴 유형)이 "리뷰형"이라면, expected_effects(= 기대 효과)에 기대 매출과 노출 건수를 반드시 포함할 것.               
     input으로 들어온 boolean field 내용 중에서 "goal_*" 형태의 필드 값이 True인 항목의 내용을 포함하여 문장형식으로 expected_effects(= 기대효과)에 추가해주면 좋을 것 같아.
     문장이 끝나면 마침표를 찍어줄 것(.).
 
