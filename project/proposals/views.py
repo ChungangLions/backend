@@ -67,8 +67,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # 내가 보낸/받은 것만 기본 표시 (관리자는 전체 허용)
         qs = Proposal.objects.select_related("author", "recipient") \
                              .prefetch_related("status_history")
-        if not user.is_staff:
-            qs = qs.filter(Q(author=user) | Q(recipient=user))
+        # if not user.is_staff:
+        #     qs = qs.filter(Q(author=user) | Q(recipient=user))
 
         # 최신 상태를 annotation (status 필터에 사용)
         latest_status_subq = ProposalStatus.objects.filter(
