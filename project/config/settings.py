@@ -239,6 +239,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://huniverse.p-e.kr",
     "https://h-universe.netlify.app",
     "https://h-universe.vercel.app",
+    "https://hue-niverse.netlify.app"
 ]
 CORS_ALLOWED_ORIGINS = [ 
     "http://localhost:3000",
@@ -248,6 +249,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://huniverse.p-e.kr",
     "https://h-universe.netlify.app",
     "https://h-universe.vercel.app",
+    "https://hue-niverse.netlify.app"
 ]
 
 # S3 파일 스토리지 설정
