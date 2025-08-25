@@ -160,6 +160,12 @@ def generate_proposal_from_owner_profile(
     만약 partnership_type(= 제휴 유형)이 "리뷰형"이라면, expected_effects(= 기대 효과)에 기대 매출과 노출 건수를 반드시 포함할 것.               
     input으로 들어온 boolean field 내용 중에서 "goal_*" 형태의 필드 값이 True인 항목의 내용을 포함하여 문장형식으로 expected_effects(= 기대효과)에 추가해주면 좋을 것 같아.
     문장이 끝나면 마침표를 찍어줄 것(.).
+                   
+    [expected_effects 필수 문장 형식]:
+    - 아래 두 문구를 반드시 포함하고 마침표로 끝낼 것:
+      1) "잠재 제휴 이용자 수 약 {int}명" 
+      2) "예상 추가 매출 약 {int}원"
+    - 필요 시 목표(goal_*)를 한 문장으로 요약하여 맨 뒤에 붙일 것. 예: "한산 시간대 유입 증대, 신규 고객 유치."
 
     [출력 값 도출을 위한 중요한 규칙 (apply_target, time_windows, period_start, period_end 필드에 대한 중요한 내용)]:
     - apply_target는 학생회의 프로필 필드에 있는 department와 council_name을 활용하라. 예를 들면, department가 경영학부이고 council_name이 '중앙사랑'이라면 "중앙사랑 학생회에 속한 학생회 인원 및 경영학부 학생"으로 작성할 수 있다. 이것 외에 추가적인 미사여구와 같은 내용은 GPT 너의 재량을 어느정도 맡김.
