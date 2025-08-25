@@ -157,6 +157,7 @@ def generate_proposal_from_owner_profile(
     기대 매출은 잠재 제휴 이용자 수 * average_sales(= 평균 인당 매출)로 산출함.
     노출 건수는 잠재 제휴 이용자 수와 같음.
     - menus 배열이 주어졌다면, benefit_description에 해당 메뉴명을 활용하는 것이 바람직함.
+    - input으로 들어온 boolean field 내용 중에서 "goal_*" 형태의 필드 값이 True인 항목의 내용을 포함하여 문장형식으로 출력해주면 좋을 것 같아.
     - 문장이 끝나면 마침표를 찍어줄 것(.).
 
     [출력 값 도출을 위한 중요한 규칙 (apply_target, time_windows, period_start, period_end 필드에 대한 중요한 내용)]:
