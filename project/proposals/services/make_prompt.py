@@ -82,7 +82,7 @@ def generate_proposal_from_owner_profile(
         "partnership_type": ["타임형", "할인형"],
         "contact_info": author_contact,
         "apply_target": "중앙대학교 경영학부에 소속된 재학생들",
-        "time_windows": [{"days": ["월요일", "화요일", "수요일", "목요일", "금요일"], "start": "15:00", "end": "17:00"}],
+        "time_windows": [{"days": ["월", "화", "수", "목", "금"], "start": "15:00", "end": "17:00"}],
         "benefit_description": "커피음료 10% 할인 (에이드, 아인슈페너는 제외)",
         "period_start": "2025-10-01",
         "period_end": "2025-12-31",
@@ -164,6 +164,7 @@ def generate_proposal_from_owner_profile(
     - apply_target는 학생회의 프로필 필드에 있는 department와 council_name을 활용하라. 예를 들면, department가 경영학부이고 council_name이 '중앙사랑'이라면 "중앙사랑 학생회에 속한 학생회 인원 및 경영학부 학생"으로 작성할 수 있다. 이것 외에 추가적인 미사여구와 같은 내용은 GPT 너의 재량을 어느정도 맡김.
     - off_peak_time를 우선 고려해 time_windows를 제안하자. 즉 off_peak_time의 시간대에 맞춰 제안하자는 의미이다. peak_time도 고려하여 이 시간대는 피하는 것으로 진행하자.
     - business_day 필드를 보면 주어진 날짜와 시간 안에 포함되는 시간만을 time_windows에 고려해야 한다. 그외의 시간은 영업 시간이 아니므로 포함하지 말자.
+    - partnership_type에 "타임형"이 포함되어 있지 않다면, input으로 들어온 business_day를 기반으로 time_windows를 설정하자. (형식이 동일한 것으로 판명되니, 이 경우 해당 값을 그대로 출력해도 됨.)
     - 오늘 날짜는 {today_str}이다.
     - period_start는 오늘 날짜 이후로 해야하고 학생회 프로필의 필드의 term_start이후로 설정해라.
     - period_end는 period_start 이후, 보통 14일~3개월 범위로 설정하라. 단, 학생회 프로필 필드의 term_end 이전으로 설정해라.
