@@ -99,7 +99,12 @@ class ProposalWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("인증이 필요합니다."))
 
         author = request.user
-        recipient = attrs.get("recipient")
+        # recipient = attrs.get("recipient")
+
+        if self.instance is not None and "recipient" not in attrs:
+            recipient = getattr(self.instance, "recipient", None)
+        else:
+            recipient = attrs.get("recipient")
 
         # 역할 매칭: (학생회 → 사장님) 또는 (사장님 → 학생회)
         pair = (author.user_role, recipient.user_role)
