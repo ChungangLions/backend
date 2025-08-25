@@ -54,6 +54,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "modified_at", "id"]
     ordering = ["-created_at"]
 
+    def get_permissions(self):
+        # 🔐 임시 완화: 상세 조회만 로그인만 요구
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated()]
+        # 그 외 액션은 기존 권한 유지
+        return [perm() for perm in self.permission_classes]
+    
     def get_queryset(self):
         user = self.request.user
 
